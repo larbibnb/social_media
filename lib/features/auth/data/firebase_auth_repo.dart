@@ -6,7 +6,7 @@ class FirebaseAuthRepo implements AuthRepo {
   FirebaseAuth firebaseAuth = FirebaseAuth.instance;
 
   @override
-  Future<AppUser> getCurrentUser() async{
+  Future<AppUser?> getCurrentUser() async{
     try {
       final user = firebaseAuth.currentUser;
       if (user != null) {
@@ -15,9 +15,10 @@ class FirebaseAuthRepo implements AuthRepo {
           uid: user.uid,
           name: user.displayName!,
         );
-      } else {
-        throw Exception("No user is logged in");
       }
+      else {
+        return null;
+        }
     } on FirebaseAuthException catch (e) {
       throw Exception(e.message);
     } on Exception catch (e) {

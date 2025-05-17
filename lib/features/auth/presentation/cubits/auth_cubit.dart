@@ -11,13 +11,13 @@ AuthCubit(this.authRepo):super(AuthInitial());
 void chekAuth()async{
   try{
     emit(AuthLoading());
-    _currentUser=await authRepo.getCurrentUser();
+    _currentUser = await authRepo.getCurrentUser();
     if(_currentUser!=null){
       emit(Authenticated(_currentUser!));
-    }else{
+    }else {
       emit(UnAuthenticated());
     }
-  }catch(e){
+  } on Exception catch(e){
     emit(AuthError(e.toString()));
   }
 }
@@ -25,7 +25,7 @@ void chekAuth()async{
 AppUser? get currentUser=>_currentUser;
 
 // login with email and password
-Future<void> login({required String email,required String pw})async{
+Future<void> login({required String email,required String pw}) async{
   try{
     emit(AuthLoading());
     _currentUser= await authRepo.loginWithEmailAndPassword(email, pw);
