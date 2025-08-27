@@ -25,7 +25,7 @@ class _RegisterViewState extends State<RegisterView> {
       final email = emailController.text.trim();
       final password = passwordController.text.trim();
       final authCubit = context.read<AuthCubit>();
-      authCubit.register(email: email, pw: password);
+      authCubit.register(name: name, email: email, pw: password);
     }
   }
 
@@ -43,74 +43,82 @@ class _RegisterViewState extends State<RegisterView> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 18.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.lock_open_rounded,
-                size: 80,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              SizedBox(height: 50),
-              Text(
-                'Let\'s create an account for you!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.lock_open_rounded,
+                  size: 80,
                   color: Theme.of(context).colorScheme.primary,
                 ),
-              ),
-              SizedBox(height: 25),
-              CustomTextFormField(
-                controller: nameController,
-                hintText: 'Name',
-                obscureText: false,
-              ),
-              SizedBox(height: 10),
-              CustomTextFormField(
-                controller: emailController,
-                hintText: 'Email',
-                obscureText: false,
-              ),
-              SizedBox(height: 10),
-              CustomTextFormField(
-                controller: passwordController,
-                hintText: 'Password',
-                obscureText: true,
-              ),
-              SizedBox(height: 10),
-              CustomTextFormField(
-                controller: confirmPasswordController,
-                hintText: 'Confirm Password',
-                obscureText: true,
-              ),
-              SizedBox(height: 25),
-              CustomButton(text: 'Register', onTap: () {}),
-              SizedBox(height: 25),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Already have an account?',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                SizedBox(height: 50),
+                Text(
+                  'Let\'s create an account for you!',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: widget.onTap,
-                    child: Text(
-                      'Login now!',
+                ),
+                SizedBox(height: 25),
+                CustomTextFormField(
+                  controller: nameController,
+                  hintText: 'Name',
+                  obscureText: false,
+                ),
+                SizedBox(height: 10),
+                CustomTextFormField(
+                  controller: emailController,
+                  hintText: 'Email',
+                  obscureText: false,
+                ),
+                SizedBox(height: 10),
+                CustomTextFormField(
+                  controller: passwordController,
+                  hintText: 'Password',
+                  obscureText: true,
+                ),
+                SizedBox(height: 10),
+                CustomTextFormField(
+                  controller: confirmPasswordController,
+                  hintText: 'Confirm Password',
+                  obscureText: true,
+                ),
+                SizedBox(height: 25),
+                CustomButton(
+                  text: 'Register',
+                  onTap: () {
+                    register();
+                  },
+                ),
+                SizedBox(height: 25),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Already have an account?',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: widget.onTap,
+                      child: Text(
+                        'Login now!',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
