@@ -14,7 +14,11 @@ class FirebaseProfileRepo implements ProfileRepo {
       final userDoc =
           await firebaseFirestore.collection('users').doc(uid).get();
       final userData = userDoc.data();
-      return ProfileUser.fromJson(userData!);
+      if (userData != null) {
+      return ProfileUser.fromJson(userData);
+      } else {
+        return null;
+      }
     } catch (e) {
       throw Exception('Get profile user failed: ${e.toString()}');
     }

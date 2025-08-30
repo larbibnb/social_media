@@ -16,7 +16,7 @@ class ProfileCubit extends Cubit<ProfileState> {
         emit(ProfileLoaded(profileUser));
       }
     } catch (e) {
-      emit(ProfileError(e.toString()));
+      emit(ProfileError('Cubit Get profile user failed: ${e.toString() }'));
     }
   }
 

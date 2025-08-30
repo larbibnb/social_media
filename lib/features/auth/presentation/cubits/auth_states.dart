@@ -1,4 +1,4 @@
-import 'package:social_media/features/auth/domain/app_user.dart';
+import 'package:social_media/features/auth/domain/entities/app_user.dart';
 
 abstract class AuthState {}
 
