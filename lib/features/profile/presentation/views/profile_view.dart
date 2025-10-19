@@ -89,7 +89,7 @@ class _ProfileViewState extends State<ProfileView>
                                   style: TextStyle(fontSize: 24),
                                 ),
                                 Text(
-                                  'Joined in 2025',
+                                  'Joined in ${profileUser.createdAt}',
                                   style: TextStyle(fontSize: 18),
                                 ),
                               ],

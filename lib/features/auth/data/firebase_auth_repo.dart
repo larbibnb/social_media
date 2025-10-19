@@ -29,55 +29,73 @@ class FirebaseAuthRepo implements AuthRepo {
   }
 
   @override
-  Future<AppUser?> registerWithEmailAndPassword({
-    required String name,
-    required String email,
-    required String password,
-  }) async {
-    try {
-      UserCredential userCredential = await firebaseAuth
-          .createUserWithEmailAndPassword(email: email, password: password);
-      AppUser user = AppUser(
-        uid: userCredential.user!.uid,
-        email: email,
-        name: name,
-      );
-      await firebaseFirestore
-          .collection('users')
-          .doc(user.uid)
-          .set(user.toJson());
-      return user;
-    } catch (e) {
-      throw Exception('Register failed: ${e.toString()}');
-    }
-  }
+Future<AppUser?> registerWithEmailAndPassword({
+  required String name,
+  required String email,
+  required String password,
+}) async {
+  try {
+    UserCredential userCredential = await firebaseAuth
+        .createUserWithEmailAndPassword(email: email, password: password);
 
-  @override
-  Future<AppUser?> loginWithEmailAndPassword(
-    String email,
-    String password,
-  ) async {
-    try {
-      UserCredential userCredential = await firebaseAuth
-          .signInWithEmailAndPassword(email: email, password: password);
-      final userDoc =
-          await firebaseFirestore
-              .collection('users')
-              .doc(userCredential.user!.uid)
-              .get();
+    // store only the yyyy-MM-dd string
+    final String createdAt =
+        DateTime.now().toIso8601String().split('T').first;
 
-      final userData = userDoc.data();
-      final name = userData?['name'] ?? '';
-      AppUser user = AppUser(
-        uid: userCredential.user!.uid,
-        email: email,
-        name: name,
-      );
-      return user;
-    } catch (e) {
-      throw Exception('Login failed: ${e.toString()}');
-    }
+    AppUser user = AppUser(
+      uid: userCredential.user!.uid,
+      email: email,
+      name: name,
+      createdAt: createdAt,
+    );
+
+    await firebaseFirestore
+        .collection('users')
+        .doc(user.uid)
+        .set({
+          'uid': user.uid,
+          'email': user.email,
+          'name': user.name,
+          'createdAt': createdAt, // stored as string
+        });
+
+    return user;
+  } catch (e) {
+    throw Exception('Register failed: ${e.toString()}');
   }
+}
+
+@override
+Future<AppUser?> loginWithEmailAndPassword(
+  String email,
+  String password,
+) async {
+  try {
+    UserCredential userCredential = await firebaseAuth
+        .signInWithEmailAndPassword(email: email, password: password);
+
+    final userDoc = await firebaseFirestore
+        .collection('users')
+        .doc(userCredential.user!.uid)
+        .get();
+
+    final userData = userDoc.data();
+    if (userData == null) return null;
+
+    final String name = userData['name'] ?? '';
+    final String createdAt = userData['createdAt'] ?? '';
+
+    AppUser user = AppUser(
+      uid: userCredential.user!.uid,
+      email: email,
+      name: name,
+      createdAt: createdAt,
+    );
+    return user;
+  } catch (e) {
+    throw Exception('Login failed: ${e.toString()}');
+  }
+}
 
   @override
   Future<void> logout() {

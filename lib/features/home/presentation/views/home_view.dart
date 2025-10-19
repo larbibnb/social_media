@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/home/presentation/components/custom_drawer.dart';
 
 class HomeView extends StatefulWidget {

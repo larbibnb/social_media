@@ -8,6 +8,7 @@ class ProfileUser extends AppUser {
     required super.uid,
     required super.name,
     required super.email,
+    required super.createdAt,
     this.bio,
     this.profilePicUrl =
         'https://sm.ign.com/t/ign_pk/cover/a/avatar-gen/avatar-generations_rpge.600.jpg',
@@ -17,6 +18,7 @@ class ProfileUser extends AppUser {
     String? uid,
     String? name,
     String? email,
+    String? createdAt,
     String? bio,
     String? profilePicUrl,
   }) {
@@ -24,6 +26,7 @@ class ProfileUser extends AppUser {
       uid: uid ?? this.uid,
       name: name ?? this.name,
       email: email ?? this.email,
+      createdAt: createdAt ?? this.createdAt,
       bio: bio ?? this.bio,
       profilePicUrl: profilePicUrl ?? this.profilePicUrl,
     );
@@ -35,6 +38,7 @@ class ProfileUser extends AppUser {
       uid: json['uid'],
       name: json['name'],
       email: json['email'],
+      createdAt: json['createdAt'],
       bio: json['bio'],
       profilePicUrl:
           json['profilePicUrl'] ??
@@ -48,6 +52,7 @@ class ProfileUser extends AppUser {
       'uid': uid,
       'name': name,
       'email': email,
+      'createdAt': createdAt,
       'bio': bio,
       'profilePicUrl': profilePicUrl,
     };
