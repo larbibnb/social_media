@@ -1,10 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/domain/repo/post_repo.dart';
-import 'package:social_media/features/post/presentation/cubit/post_state.dart';
+import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
 
 class PostCubit extends Cubit<PostState> {
-  final PostRepo _postRepo;
+  final CommentRepo _postRepo;
 
   PostCubit(this._postRepo) : super(PostInitial());
 

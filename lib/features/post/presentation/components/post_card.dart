@@ -5,6 +5,8 @@ import 'package:intl/intl.dart' as intl;
 import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:social_media/features/post/domain/entity/comment.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
+import 'package:social_media/features/post/presentation/cubits/comment_cubit/comment_cubit.dart';
+import 'package:social_media/features/post/presentation/cubits/likes_cubit/likes_cubit.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_state.dart';
@@ -38,10 +40,10 @@ class _PostCardState extends State<PostCard>
 
   AuthCubit get _authCubit => context.read<AuthCubit>();
   ProfileCubit get _profileCubit => context.read<ProfileCubit>();
+  LikesCubit get _likesCubit => context.read<LikesCubit>();
+  CommentCubit get _commentCubit => context.read<CommentCubit>();
 
-  String get _currentUserId => _authCubit.currentUser!.uid;
-
-  bool get _isLiked => widget.post.likes.contains(_currentUserId);
+  String get _currentUserId => _authCubit.currentUser?.uid ?? '';
 
   @override
   bool get wantKeepAlive => true;
@@ -58,8 +60,8 @@ class _PostCardState extends State<PostCard>
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        final likes = widget.post.likes;
-        if (likes.isEmpty) {
+        final state = context.watch<LikesCubit>().state;
+        if (state.likes.isEmpty) {
           return const _EmptyState(message: 'No likes yet');
         }
         return Padding(
@@ -73,7 +75,7 @@ class _PostCardState extends State<PostCard>
                   const Icon(Icons.favorite, color: Colors.redAccent),
                   const SizedBox(width: 8),
                   Text(
-                    'Liked by ${likes.length} people',
+                    'Liked by ${state.likes.length} people',
                     style: Theme.of(context)
                         .textTheme
                         .titleMedium
@@ -85,10 +87,10 @@ class _PostCardState extends State<PostCard>
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
-                  itemCount: likes.length,
+                  itemCount: state.likes.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
-                    final likerId = likes[index];
+                    final likerId = state.likes[index];
                     return BlocProvider.value(
                       value: _profileCubit,
                       child: _UserTile(userId: likerId),
@@ -104,7 +106,8 @@ class _PostCardState extends State<PostCard>
   }
 
   void _showCommentsSheet() {
-    final comments = widget.post.comments;
+    final commentsState = context.read<CommentCubit>().state;
+    final comments = commentsState.comments;
     if (comments.isEmpty) {
       _toggleComments();
       return;
@@ -124,9 +127,14 @@ class _PostCardState extends State<PostCard>
             bottom: MediaQuery.of(context).viewInsets.bottom + 16,
             top: 24,
           ),
-          child: _CommentsList(
-            comments: comments,
-            profileCubit: _profileCubit,
+          child: BlocProvider.value(
+            value: _commentCubit,
+            child: BlocProvider.value(
+              value: _profileCubit,
+              child: _CommentsList(
+                comments: comments,
+              ),
+            ),
           ),
         );
       },
@@ -139,6 +147,8 @@ class _PostCardState extends State<PostCard>
     final theme = Theme.of(context);
     final post = widget.post;
     final author = widget.author;
+    final likesState = context.watch<LikesCubit>().state;
+    final commentsState = context.watch<CommentCubit>().state;
 
     return Card(
       clipBehavior: Clip.hardEdge,
@@ -170,20 +180,23 @@ class _PostCardState extends State<PostCard>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _PostActions(
-                  isLiked: _isLiked,
-                  likeCount: post.likes.length,
-                  commentCount: post.comments.length,
-                  onLike: widget.onLike ?? _showLikesSheet,
+                  isLiked: likesState.likes.contains(_currentUserId),
+                  likeCount: likesState.likes.length,
+                  commentCount: commentsState.comments.length,
+                  onLike: () => _likesCubit.toggleLike(
+                    postId: post.id,
+                    userId: _currentUserId,
+                  ),
                   onComment: widget.onComment ?? _showCommentsSheet,
                   onShare: widget.onShare,
                   onLikesTap: _showLikesSheet,
                 ),
                 const SizedBox(height: 8),
-                if (post.likes.isNotEmpty)
+                if (likesState.likes.isNotEmpty)
                   GestureDetector(
                     onTap: _showLikesSheet,
                     child: Text(
-                      _buildLikesLabel(post.likes.length),
+                      _buildLikesLabel(likesState.likes.length),
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -191,8 +204,8 @@ class _PostCardState extends State<PostCard>
                     ),
                   ),
                 const SizedBox(height: 8),
-                if (post.comments.isNotEmpty)
-                  _buildCommentsSection(post.comments, theme),
+                if (commentsState.comments.isNotEmpty)
+                  _buildCommentsSection(commentsState.comments, theme),
               ],
             ),
           ),
@@ -453,23 +466,42 @@ class _CarouselIndicators extends StatelessWidget {
   }
 }
 
-class _CommentTile extends StatelessWidget {
+class _CommentTile extends StatefulWidget {
   final Comment comment;
   const _CommentTile({required this.comment});
 
   @override
+  State<_CommentTile> createState() => _CommentTileState();
+}
+
+class _CommentTileState extends State<_CommentTile> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch user profile if not already loaded.
+    // A better long-term solution is a cached repository or cubit.
+    context.read<ProfileCubit>().getProfileUser(widget.comment.ownerId);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocBuilder<ProfileCubit, ProfileState>(
+      // Rebuild only when the relevant profile is loaded.
+      // This is still not perfect as it listens to all ProfileState changes.
+      // A more advanced solution would use BlocSelector or a dedicated cubit per tile.
       builder: (context, state) {
-        if (state is ProfileLoaded && state.profileUser.uid == comment.ownerId) {
+        if (state is ProfileLoaded &&
+            state.profileUser.uid == widget.comment.ownerId) {
           return _CommentContent(
             username: state.profileUser.name,
             profilePicUrl: state.profileUser.profilePicUrl,
-            description: comment.description,
+            description: widget.comment.description,
           );
         }
 
-        context.read<ProfileCubit>().getProfileUser(comment.ownerId);
+        // The request is now in initState.
+        // We could also check here if a fetch is in progress to avoid re-fetching,
+        // but for now, this is a safer pattern than fetching in build.
 
         return const _CommentSkeleton();
       },
@@ -562,11 +594,9 @@ class _CommentSkeleton extends StatelessWidget {
 
 class _CommentsList extends StatelessWidget {
   final List<Comment> comments;
-  final ProfileCubit profileCubit;
 
   const _CommentsList({
     required this.comments,
-    required this.profileCubit,
   });
 
   @override
@@ -575,17 +605,14 @@ class _CommentsList extends StatelessWidget {
       return const _EmptyState(message: 'No comments yet');
     }
 
-    return BlocProvider.value(
-      value: profileCubit,
-      child: ListView.separated(
-        shrinkWrap: true,
-        itemCount: comments.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final comment = comments[index];
-          return _CommentTile(comment: comment);
-        },
-      ),
+    return ListView.separated(
+      shrinkWrap: true,
+      itemCount: comments.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final comment = comments[index];
+        return _CommentTile(comment: comment);
+      },
     );
   }
 }
@@ -625,60 +652,51 @@ class _UserTile extends StatefulWidget {
 }
 
 class _UserTileState extends State<_UserTile> {
-  ProfileUser? _profileUser;
-  bool _isLoading = false;
+  late final Future<ProfileUser?> _userFuture;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadUser();
-  }
-
-  Future<void> _loadUser() async {
-    if (_profileUser != null || _isLoading) return;
-    setState(() => _isLoading = true);
-    try {
-      final profileCubit = context.read<ProfileCubit>();
-      profileCubit.getProfileUser(widget.userId);
-      final state = profileCubit.state;
-      if (state is ProfileLoaded) {
-        setState(() => _profileUser = state.profileUser);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+  void initState() {
+    super.initState();
+    _userFuture = context.read<ProfileCubit>().getProfileUser(widget.userId);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const ListTile(
-        leading: CircleAvatar(backgroundColor: Colors.grey),
-        title: SizedBox(height: 12, child: DecoratedBox(decoration: BoxDecoration(color: Colors.grey))),
-      );
-    }
+    return FutureBuilder<ProfileUser?>(
+      future: _userFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const ListTile(
+            leading: CircleAvatar(backgroundColor: Colors.grey),
+            title: SizedBox(
+                height: 12,
+                child: DecoratedBox(
+                    decoration: BoxDecoration(color: Colors.grey))),
+          );
+        }
 
-    final profileUser = _profileUser;
-    if (profileUser == null) {
-      return const ListTile(
-        leading: CircleAvatar(backgroundColor: Colors.grey),
-        title: Text('Unknown user'),
-      );
-    }
+        final profileUser = snapshot.data;
+        if (profileUser == null || snapshot.hasError) {
+          return const ListTile(
+            leading: CircleAvatar(child: Icon(Icons.error)),
+            title: Text('Unknown user'),
+            subtitle: Text('Could not load user details'),
+          );
+        }
 
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundImage: profileUser.profilePicUrl != null
-            ? CachedNetworkImageProvider(profileUser.profilePicUrl!)
-            : null,
-        child: profileUser.profilePicUrl == null
-            ? Text(profileUser.name.characters.first.toUpperCase())
-            : null,
-      ),
-      title: Text(profileUser.name),
-      subtitle: Text(profileUser.email),
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundImage: profileUser.profilePicUrl != null
+                ? CachedNetworkImageProvider(profileUser.profilePicUrl!)
+                : null,
+            child: profileUser.profilePicUrl == null
+                ? Text(profileUser.name.characters.first.toUpperCase())
+                : null,
+          ),
+          title: Text(profileUser.name),
+          subtitle: Text(profileUser.email),
+        );
+      },
     );
   }
 }

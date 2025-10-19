@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/presentation/components/post_card.dart';
-import 'package:social_media/features/post/presentation/cubit/post_cubit.dart';
-import 'package:social_media/features/post/presentation/cubit/post_state.dart';
+import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
+import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 
@@ -82,8 +82,7 @@ class _PostCardWithAuthorState extends State<_PostCardWithAuthor> {
   @override
   void initState() {
     super.initState();
-    final profileRepo = context.read<ProfileCubit>().profileRepo;
-    _authorFuture = profileRepo.getProfileUser(widget.post.ownerId);
+    _authorFuture = context.read<ProfileCubit>().getProfileUser(widget.post.ownerId);
   }
 
   @override

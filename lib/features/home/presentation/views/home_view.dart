@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:social_media/features/home/presentation/components/custom_drawer.dart';
+import 'package:social_media/features/post/presentation/views/feedview.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -14,6 +15,7 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       drawer: CustomDrawer(),
       appBar: AppBar(title: Text('Home View'), centerTitle: true),
+      body: FeedView(),
     );
   }
 }

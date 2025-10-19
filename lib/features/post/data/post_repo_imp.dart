@@ -3,7 +3,7 @@ import 'package:social_media/features/post/domain/entity/comment.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/domain/repo/post_repo.dart';
 
-class PostRepoImp extends PostRepo {
+class PostRepoImp extends CommentRepo {
   final FirebaseFirestore _firestore;
 
   PostRepoImp({required FirebaseFirestore firestore})
@@ -21,8 +21,6 @@ class PostRepoImp extends PostRepo {
         ownerId: data['ownerId'],
         description: data['description'],
         images: List<String>.from(data['images']),
-        likes: List<String>.from(data['likes']),
-        comments: List<Comment>.from(data['comments']),
         timestamp: (data['timestamp'] as Timestamp).toDate(),
       );
     }).toList();
@@ -37,14 +35,12 @@ class PostRepoImp extends PostRepo {
       throw Exception('Post not found');
     }
     return Post(
-        id: postId,
-        ownerId: postData['ownerId'],
-        description: postData['description'],
-        images: List<String>.from(postData['images']),
-        likes: List<String>.from(postData['likes']),
-        comments: List<Comment>.from(postData['comments']),
-        timestamp: (postData['timestamp'] as Timestamp).toDate(),
-      );  
+      id: postId,
+      ownerId: postData['ownerId'],
+      description: postData['description'],
+      images: List<String>.from(postData['images']),
+      timestamp: (postData['timestamp'] as Timestamp).toDate(),
+    );
   }
 
   @override
@@ -81,5 +77,74 @@ class PostRepoImp extends PostRepo {
   @override
   Future<void> deletePost(String postId) async {
     await _firestore.collection('posts').doc(postId).delete();
+  }
+
+  @override
+  Future<void> likePost(String postId, String userId) async {
+    final postRef = _firestore.collection('posts').doc(postId);
+    await postRef.update({
+      'likes': FieldValue.arrayUnion([userId]),
+    });
+  }
+
+  @override
+  Future<void> unlikePost(String postId, String userId) async {
+    final postRef = _firestore.collection('posts').doc(postId);
+    await postRef.update({
+      'likes': FieldValue.arrayRemove([userId]),
+    });
+  }
+
+  @override
+  Future<List<String>> getLikes(String postId) async {
+    final postDoc = await _firestore.collection('posts').doc(postId).get();
+    final data = postDoc.data();
+    if (data == null) {
+      return [];
+    }
+    return List<String>.from(data['likes'] ?? []);
+  }
+
+  @override
+  Future<List<Comment>> getComments(String postId) async {
+    final commentsSnapshot = await _firestore
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .get();
+    return commentsSnapshot.docs.map((doc) {
+      final data = doc.data();
+      return Comment(
+        id: doc.id,
+        postId: postId,
+        ownerId: data['ownerId'],
+        description: data['description'],
+      );
+    }).toList();
+  }
+
+  @override
+  Future<void> addComment(String postId, Comment comment) async {
+    final commentsCollection =
+        _firestore.collection('posts').doc(postId).collection('comments');
+    final commentDoc = await commentsCollection.add({
+      'ownerId': comment.ownerId,
+      'postId': comment.postId,
+      'description': comment.description,
+    });
+    await commentsCollection.doc(commentDoc.id).update({
+      'id': commentDoc.id,
+      'createdAt': Timestamp.now(),
+    });
+  }
+
+  @override
+  Future<void> deleteComment(String postId, String commentId) async {
+    await _firestore
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .doc(commentId)
+        .delete();
   }
 }

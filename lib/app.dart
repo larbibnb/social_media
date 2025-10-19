@@ -9,7 +9,7 @@ import 'package:social_media/features/auth/presentation/views/authview.dart';
 import 'package:social_media/features/home/presentation/views/home_view.dart';
 import 'package:social_media/features/post/data/post_repo_imp.dart';
 import 'package:social_media/features/post/domain/repo/post_repo.dart';
-import 'package:social_media/features/post/presentation/cubit/post_cubit.dart';
+import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
 import 'package:social_media/features/profile/data/firebase_profile_data.dart';
 import 'package:social_media/features/profile/domain/repo/profile_repo.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
@@ -51,7 +51,7 @@ Chek AuthState
 class MyApp extends StatelessWidget {
   AuthRepo authRepo = FirebaseAuthRepo();
   ProfileRepo profileRepo = FirebaseProfileRepo();
-  PostRepo postRepo = PostRepoImp(firestore: FirebaseFirestore.instance);
+  CommentRepo postRepo = PostRepoImp(firestore: FirebaseFirestore.instance);
   StorageRepo storageRepo = FirebaseStorageRepo();
   MyApp({super.key});
 
