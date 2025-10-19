@@ -2,16 +2,14 @@ class Likes {
   final String postId;
   final String ownerId;
   final String uid;
-  final DateTime timestamp;
 
-  Likes({required this.postId,  required this.ownerId, required this.uid, required this.timestamp});
+  Likes({required this.postId,  required this.ownerId, required this.uid,});
 
   factory Likes.fromJson(Map<String, dynamic> json) {
     return Likes(
       postId: json['postId'],
       ownerId: json['ownerId'],
       uid: json['uid'],
-      timestamp: DateTime.parse(json['timestamp']),
     );
   }
 
@@ -19,7 +17,7 @@ class Likes {
     return {
       'postId': postId,
       'uid': uid,
-      'timestamp': timestamp.toIso8601String(),
-    };
+      'ownerId': ownerId,};
   }
+  
 }
