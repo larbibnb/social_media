@@ -26,7 +26,12 @@ class PostCubit extends Cubit<PostState> {
       emit(PostLoading());
        final uploadedUrls = <String>[];
        if(pathImages != null && pathImages.isNotEmpty){
-        
+        for (var i = 0; i < pathImages.length; i++) {
+         final img = pathImages[i];
+         final uniqueFileName = '${post.id}_$i';
+         final url = await _storageRepo.uploadPostImage(img, uniqueFileName);
+         uploadedUrls.add(url);
+       }
          post.images.addAll(uploadedUrls);
          log(post.images.toString());
        }
