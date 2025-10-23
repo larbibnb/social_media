@@ -1,3 +1,4 @@
 abstract class StorageRepo {
-  Future<String> uploadImage(String path, String fileName);
+  Future<String> uploadProfileImage(String path, String fileName);
+  Future<String> uploadPostImage(String path, String fileName);
 }

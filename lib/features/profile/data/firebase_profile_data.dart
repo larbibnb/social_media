@@ -31,7 +31,7 @@ class FirebaseProfileRepo implements ProfileRepo {
   ) async {
     String? profilePicUrl = user.profilePicUrl;
     if (pickedFile != null) {
-      profilePicUrl = await storageRepo.uploadImage(
+      profilePicUrl = await storageRepo.uploadProfileImage(
         pickedFile.path!,
         '${user.uid}_profile.jpg',
       );

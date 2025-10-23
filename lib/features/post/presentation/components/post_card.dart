@@ -498,11 +498,6 @@ class _CommentTileState extends State<_CommentTile> {
             description: widget.comment.description,
           );
         }
-
-        // The request is now in initState.
-        // We could also check here if a fetch is in progress to avoid re-fetching,
-        // but for now, this is a safer pattern than fetching in build.
-
         return const _CommentSkeleton();
       },
     );

@@ -2,38 +2,38 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/domain/repo/post_repo.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
+import 'package:social_media/features/storage/domain/storage_repo.dart';
 
 class PostCubit extends Cubit<PostState> {
   final CommentRepo _postRepo;
+  final StorageRepo _storageRepo;
+  PostCubit(this._postRepo, this._storageRepo) : super(PostInitial());
 
-  PostCubit(this._postRepo) : super(PostInitial());
 
-    Future<Post> getPost(String postId) async {
-    return await _postRepo.getPost(postId);
-  }
   Future<void> fetchPosts() async {
     emit(PostLoading());
     try {
-      final posts = await _postRepo.getPosts();
+      final posts = await _postRepo.fetchPosts();
       emit(PostsLoaded(posts));
     } catch (e) {
       emit(PostError(e.toString()));
     }
   }
-  Future<void> createPost(String ownerId, String description, List<String> images) async {
+  Future<void> createOrUpdatePost(Post post,{List<String>? pathImages}) async {
     try {
       emit(PostLoading());
-      await _postRepo.createPost(ownerId, description, images);
-      emit(PostInitial());
-    } catch (e) {
-      emit(PostError(e.toString()));
-    }
-  }
-  Future<void> updatePost(String postId, String description, List<String> images) async {
-    try {
-      emit(PostLoading());
-      await _postRepo.updatePost(postId, description, images);
-      emit(PostInitial());
+       final uploadedUrls = <String>[];
+       if(pathImages != null && pathImages.isNotEmpty){
+       for(final img in pathImages){
+           final url = await _storageRepo.uploadPostImage(img, post.id);
+           uploadedUrls.add(url);
+         }
+       }else{
+          throw Exception('No file selected');
+         }
+        post.images.addAll(uploadedUrls);
+      _postRepo.createOrUpdatePost(post);
+      fetchPosts();
     } catch (e) {
       emit(PostError(e.toString()));
     }
@@ -48,3 +48,4 @@ class PostCubit extends Cubit<PostState> {
     }
   }
 }
+

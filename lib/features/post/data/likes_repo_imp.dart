@@ -20,7 +20,7 @@ class LikesRepoImp extends LikesRepo {
 
   @override
   Future<void> likePost(String postId, String ownerId) async {
-    final likesCollection=await _firestore.collection('posts').doc(postId).collection('likes');
+    final likesCollection=_firestore.collection('posts').doc(postId).collection('likes');
     final likesDoc=await likesCollection.add({'ownerId': ownerId,});
     likesCollection.doc(likesDoc.id).update({'uid':likesDoc.id ,});
   }
