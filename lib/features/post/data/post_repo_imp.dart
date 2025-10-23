@@ -1,16 +1,11 @@
 import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/domain/repo/post_repo.dart';
 
-class PostRepoImp extends CommentRepo {
-  final FirebaseFirestore _firestore;
+class PostRepoImp extends PostRepo {
 
-  PostRepoImp({required FirebaseFirestore firestore})
-      : _firestore = firestore;
   final postsCollection = FirebaseFirestore.instance.collection('posts');
-
   @override
   Future<List<Post>> fetchPosts() async {
     try {
@@ -43,6 +38,7 @@ class PostRepoImp extends CommentRepo {
   ) async {
     try {
   await postsCollection.doc(post.id).set(post.toJson());
+  log('${post.toJson()}');
 } catch (e) {
   log('$e');
   }

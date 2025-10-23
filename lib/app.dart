@@ -7,8 +7,14 @@ import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:social_media/features/auth/presentation/cubits/auth_states.dart';
 import 'package:social_media/features/auth/presentation/views/authview.dart';
 import 'package:social_media/features/home/presentation/views/home_view.dart';
+import 'package:social_media/features/post/data/comment_repo_imp.dart';
+import 'package:social_media/features/post/data/likes_repo_imp.dart';
 import 'package:social_media/features/post/data/post_repo_imp.dart';
+import 'package:social_media/features/post/domain/repo/comment_repo.dart';
+import 'package:social_media/features/post/domain/repo/likes_repo.dart';
 import 'package:social_media/features/post/domain/repo/post_repo.dart';
+import 'package:social_media/features/post/presentation/cubits/comment_cubit/comment_cubit.dart';
+import 'package:social_media/features/post/presentation/cubits/likes_cubit/likes_cubit.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
 import 'package:social_media/features/profile/data/firebase_profile_data.dart';
 import 'package:social_media/features/profile/domain/repo/profile_repo.dart';
@@ -51,7 +57,9 @@ Chek AuthState
 class MyApp extends StatelessWidget {
   AuthRepo authRepo = FirebaseAuthRepo();
   ProfileRepo profileRepo = FirebaseProfileRepo();
-  CommentRepo postRepo = PostRepoImp(firestore: FirebaseFirestore.instance);
+  PostRepo postRepo = PostRepoImp();
+  LikesRepo likesRepo = LikesRepoImp( firestore: FirebaseFirestore.instance);
+  CommentRepo commentRepo = CommentRepoImp(fireStore: FirebaseFirestore.instance);
   StorageRepo storageRepo = FirebaseStorageRepo();
   MyApp({super.key});
 
@@ -63,6 +71,8 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => AuthCubit(authRepo)..chekAuth()),
         BlocProvider(create: (context) => ProfileCubit(profileRepo)),
         BlocProvider(create: (context) => PostCubit(postRepo, storageRepo)),
+        BlocProvider(create: (context) => LikesCubit(likesRepo: likesRepo)),
+        BlocProvider(create: (context) => CommentCubit(commentRepo: commentRepo)),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

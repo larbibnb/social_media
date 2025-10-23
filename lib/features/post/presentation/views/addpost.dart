@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io' show File;
 
 import 'package:file_picker/file_picker.dart';
@@ -37,13 +38,18 @@ class _AddpostState extends State<Addpost> {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
-        allowMultiple: false,
+        allowMultiple: true,
       );
       if (result != null && result.files.isNotEmpty) {
         setState(() {
           pickedFiles = result.files;
         });
-        _images.addAll(result.files.map((f) => f.path!).toList());
+        if (_images.isNotEmpty) _images.clear();
+        if (pickedFiles != null && pickedFiles!.isNotEmpty) {
+          for (var file in pickedFiles!) {
+            _images.add(file.path!);
+          }
+        }
       }
     } catch (e) {
       // Handle the error gracefully
@@ -55,8 +61,9 @@ class _AddpostState extends State<Addpost> {
 void _addPost(){
   final currentUser = context.read<AuthCubit>().currentUser;
   if(currentUser == null) return;
-  final newpost = Post( id: DateTime.now().millisecondsSinceEpoch.toString(),ownerId: currentUser.uid,description: _descController.text,images: _images ,timestamp: DateTime.now(),);
+  final newpost = Post( id: DateTime.now().millisecondsSinceEpoch.toString(),ownerId: currentUser.uid,description: _descController.text,images: [] ,timestamp: DateTime.now(),);
   if(pickedFiles != null && pickedFiles!.isNotEmpty){
+    log("ssssssss$_images");
     context.read<PostCubit>().createOrUpdatePost(newpost,pathImages:_images);
   }else{
     context.read<PostCubit>().createOrUpdatePost(newpost);

@@ -30,7 +30,6 @@ class _FeedViewState extends State<FeedView> {
           if (state is PostLoading || state is PostInitial) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (state is PostError) {
             return Center(
               child: Text(

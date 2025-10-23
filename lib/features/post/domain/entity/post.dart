@@ -21,7 +21,7 @@ class Post {
       id: json['id'],
       ownerId: json['ownerId'],
       description: json['description'],
-      images: (json['images'] as List<String>).toList(),
+      images: List<String>.from(json['images']),
       timestamp: (json['timestamp'] as Timestamp).toDate(),
     );
   }
