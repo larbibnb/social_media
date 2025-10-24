@@ -5,8 +5,7 @@ import 'package:intl/intl.dart' as intl;
 import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:social_media/features/post/domain/entity/comment.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
-import 'package:social_media/features/post/presentation/cubits/comment_cubit/comment_cubit.dart';
-import 'package:social_media/features/post/presentation/cubits/likes_cubit/likes_cubit.dart';
+import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_state.dart';
@@ -14,8 +13,6 @@ import 'package:social_media/features/profile/presentation/cubit/profile_state.d
 class PostCard extends StatefulWidget {
   final Post post;
   final ProfileUser author;
-  final VoidCallback? onLike;
-  final VoidCallback? onComment;
   final VoidCallback? onShare;
   final VoidCallback? onMenuTap;
 
@@ -23,8 +20,6 @@ class PostCard extends StatefulWidget {
     super.key,
     required this.post,
     required this.author,
-    this.onLike,
-    this.onComment,
     this.onShare,
     this.onMenuTap,
   });
@@ -39,10 +34,8 @@ class _PostCardState extends State<PostCard>
   bool _showAllComments = false;
 
   AuthCubit get _authCubit => context.read<AuthCubit>();
+  PostCubit get _postCubit => context.read<PostCubit>();
   ProfileCubit get _profileCubit => context.read<ProfileCubit>();
-  LikesCubit get _likesCubit => context.read<LikesCubit>();
-  CommentCubit get _commentCubit => context.read<CommentCubit>();
-
   String get _currentUserId => _authCubit.currentUser?.uid ?? '';
 
   @override
@@ -50,6 +43,52 @@ class _PostCardState extends State<PostCard>
 
   void _toggleComments() {
     setState(() => _showAllComments = !_showAllComments);
+  }
+
+  void _onLike() {
+    if (!widget.post.likes.contains(_currentUserId)) {
+      _postCubit.likePost(widget.post.id, _currentUserId);
+    } else {
+      _postCubit.unlikePost(widget.post.id, _currentUserId);
+    }
+  }
+
+  void _onComment() {
+    final currentUser = _authCubit.currentUser;
+    if (currentUser != null) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          String comment = '';
+          return AlertDialog(
+            title: const Text('Add a comment'),
+            content: TextField(onChanged: (value) => comment = value),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  _postCubit.commentPost(
+                    widget.post.id,
+                    currentUser.uid,
+                    currentUser.name,
+                    comment,
+                  );
+                  Navigator.pop(context);
+                },
+                child: const Text('Post'),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to comment.')),
+      );
+    }
   }
 
   void _showLikesSheet() {
@@ -60,8 +99,7 @@ class _PostCardState extends State<PostCard>
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        final state = context.watch<LikesCubit>().state;
-        if (state.likes.isEmpty) {
+        if (widget.post.likes.isEmpty) {
           return const _EmptyState(message: 'No likes yet');
         }
         return Padding(
@@ -75,11 +113,10 @@ class _PostCardState extends State<PostCard>
                   const Icon(Icons.favorite, color: Colors.redAccent),
                   const SizedBox(width: 8),
                   Text(
-                    'Liked by ${state.likes.length} people',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    'Liked by ${widget.post.likes.length} people',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ],
               ),
@@ -87,10 +124,10 @@ class _PostCardState extends State<PostCard>
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
-                  itemCount: state.likes.length,
+                  itemCount: widget.post.likes.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
-                    final likerId = state.likes[index];
+                    final likerId = widget.post.likes[index];
                     return BlocProvider.value(
                       value: _profileCubit,
                       child: _UserTile(userId: likerId),
@@ -106,8 +143,7 @@ class _PostCardState extends State<PostCard>
   }
 
   void _showCommentsSheet() {
-    final commentsState = context.read<CommentCubit>().state;
-    final comments = commentsState.comments;
+    final comments = widget.post.comments;
     if (comments.isEmpty) {
       _toggleComments();
       return;
@@ -127,18 +163,12 @@ class _PostCardState extends State<PostCard>
             bottom: MediaQuery.of(context).viewInsets.bottom + 16,
             top: 24,
           ),
-          child: BlocProvider.value(
-            value: _commentCubit,
-            child: BlocProvider.value(
-              value: _profileCubit,
-              child: _CommentsList(
-                comments: comments,
-              ),
-            ),
-          ),
+          child: _CommentsList(comments: comments),
         );
       },
-    );
+    ).then((value) {
+      setState(() => _showAllComments = false);
+    });
   }
 
   @override
@@ -147,8 +177,6 @@ class _PostCardState extends State<PostCard>
     final theme = Theme.of(context);
     final post = widget.post;
     final author = widget.author;
-    final likesState = context.watch<LikesCubit>().state;
-    final commentsState = context.watch<CommentCubit>().state;
 
     return Card(
       clipBehavior: Clip.hardEdge,
@@ -166,37 +194,31 @@ class _PostCardState extends State<PostCard>
           if (post.description.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                post.description,
-                style: theme.textTheme.bodyLarge,
-              ),
+              child: Text(post.description, style: theme.textTheme.bodyLarge),
             ),
-          if (post.images.isNotEmpty)
-            _PostImageCarousel(images: post.images),
+          if (post.images.isNotEmpty) _PostImageCarousel(images: post.images),
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+            ).copyWith(bottom: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _PostActions(
-                  isLiked: likesState.likes.contains(_currentUserId),
-                  likeCount: likesState.likes.length,
-                  commentCount: commentsState.comments.length,
-                  onLike: () => _likesCubit.toggleLike(
-                    postId: post.id,
-                    userId: _currentUserId,
-                  ),
-                  onComment: widget.onComment ?? _showCommentsSheet,
+                  onLike: _onLike,
+                  isLiked: post.likes.contains(_currentUserId),
+                  likeCount: post.likes.length,
+                  commentCount: post.comments.length,
+                  onComment: _onComment,
                   onShare: widget.onShare,
                   onLikesTap: _showLikesSheet,
                 ),
                 const SizedBox(height: 8),
-                if (likesState.likes.isNotEmpty)
+                if (post.likes.isNotEmpty)
                   GestureDetector(
                     onTap: _showLikesSheet,
                     child: Text(
-                      _buildLikesLabel(likesState.likes.length),
+                      _buildLikesLabel(post.likes.length),
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -204,8 +226,8 @@ class _PostCardState extends State<PostCard>
                     ),
                   ),
                 const SizedBox(height: 8),
-                if (commentsState.comments.isNotEmpty)
-                  _buildCommentsSection(commentsState.comments, theme),
+                if (post.comments.isNotEmpty)
+                  _buildCommentsSection(post.comments, theme),
               ],
             ),
           ),
@@ -215,9 +237,10 @@ class _PostCardState extends State<PostCard>
   }
 
   Widget _buildCommentsSection(List<Comment> comments, ThemeData theme) {
-    final visibleComments = _showAllComments
-        ? comments
-        : comments.take(_compactCommentCount).toList();
+    final visibleComments =
+        _showAllComments
+            ? comments
+            : comments.take(_compactCommentCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,9 +256,10 @@ class _PostCardState extends State<PostCard>
         ),
         if (comments.length > _compactCommentCount)
           TextButton(
-            onPressed: comments.isEmpty
-                ? null
-                : (_showAllComments ? _toggleComments : _showCommentsSheet),
+            onPressed:
+                comments.isEmpty
+                    ? null
+                    : (_showAllComments ? _toggleComments : _showCommentsSheet),
             child: Text(
               _showAllComments
                   ? 'Show fewer comments'
@@ -278,12 +302,14 @@ class _PostHeader extends StatelessWidget {
           CircleAvatar(
             radius: 24,
             backgroundColor: theme.colorScheme.surfaceVariant,
-            backgroundImage: author.profilePicUrl != null
-                ? CachedNetworkImageProvider(author.profilePicUrl!)
-                : null,
-            child: author.profilePicUrl == null
-                ? Text(author.name.characters.first.toUpperCase())
-                : null,
+            backgroundImage:
+                author.profilePicUrl != null
+                    ? CachedNetworkImageProvider(author.profilePicUrl!)
+                    : null,
+            child:
+                author.profilePicUrl == null
+                    ? Text(author.name.characters.first.toUpperCase())
+                    : null,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -305,10 +331,7 @@ class _PostHeader extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: onMenuTap,
-          ),
+          IconButton(icon: const Icon(Icons.more_vert), onPressed: onMenuTap),
         ],
       ),
     );
@@ -363,10 +386,7 @@ class _PostActions extends StatelessWidget {
           style: theme.textTheme.labelLarge,
         ),
         const SizedBox(width: 16),
-        IconButton(
-          icon: const Icon(Icons.share_outlined),
-          onPressed: onShare,
-        ),
+        IconButton(icon: const Icon(Icons.share_outlined), onPressed: onShare),
       ],
     );
   }
@@ -413,12 +433,12 @@ class _PostImageCarouselState extends State<_PostImageCarousel> {
               return CachedNetworkImage(
                 imageUrl: imageUrl,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-                errorWidget: (context, url, error) => const Center(
-                  child: Icon(Icons.broken_image, size: 48),
-                ),
+                placeholder:
+                    (context, url) =>
+                        const Center(child: CircularProgressIndicator()),
+                errorWidget:
+                    (context, url, error) =>
+                        const Center(child: Icon(Icons.broken_image, size: 48)),
               );
             },
           ),
@@ -440,10 +460,7 @@ class _CarouselIndicators extends StatelessWidget {
   final int length;
   final int activeIndex;
 
-  const _CarouselIndicators({
-    required this.length,
-    required this.activeIndex,
-  });
+  const _CarouselIndicators({required this.length, required this.activeIndex});
 
   @override
   Widget build(BuildContext context) {
@@ -524,10 +541,13 @@ class _CommentContent extends StatelessWidget {
         CircleAvatar(
           radius: 16,
           backgroundImage:
-              profilePicUrl != null ? CachedNetworkImageProvider(profilePicUrl!) : null,
-          child: profilePicUrl == null
-              ? Text(username.characters.first.toUpperCase())
-              : null,
+              profilePicUrl != null
+                  ? CachedNetworkImageProvider(profilePicUrl!)
+                  : null,
+          child:
+              profilePicUrl == null
+                  ? Text(username.characters.first.toUpperCase())
+                  : null,
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -590,9 +610,7 @@ class _CommentSkeleton extends StatelessWidget {
 class _CommentsList extends StatelessWidget {
   final List<Comment> comments;
 
-  const _CommentsList({
-    required this.comments,
-  });
+  const _CommentsList({required this.comments});
 
   @override
   Widget build(BuildContext context) {
@@ -664,9 +682,11 @@ class _UserTileState extends State<_UserTile> {
           return const ListTile(
             leading: CircleAvatar(backgroundColor: Colors.grey),
             title: SizedBox(
-                height: 12,
-                child: DecoratedBox(
-                    decoration: BoxDecoration(color: Colors.grey))),
+              height: 12,
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: Colors.grey),
+              ),
+            ),
           );
         }
 
@@ -681,12 +701,14 @@ class _UserTileState extends State<_UserTile> {
 
         return ListTile(
           leading: CircleAvatar(
-            backgroundImage: profileUser.profilePicUrl != null
-                ? CachedNetworkImageProvider(profileUser.profilePicUrl!)
-                : null,
-            child: profileUser.profilePicUrl == null
-                ? Text(profileUser.name.characters.first.toUpperCase())
-                : null,
+            backgroundImage:
+                profileUser.profilePicUrl != null
+                    ? CachedNetworkImageProvider(profileUser.profilePicUrl!)
+                    : null,
+            child:
+                profileUser.profilePicUrl == null
+                    ? Text(profileUser.name.characters.first.toUpperCase())
+                    : null,
           ),
           title: Text(profileUser.name),
           subtitle: Text(profileUser.email),

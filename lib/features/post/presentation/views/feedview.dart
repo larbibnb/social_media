@@ -22,6 +22,12 @@ class _FeedViewState extends State<FeedView> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    context.read<PostCubit>().close();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Feed')),
@@ -32,23 +38,21 @@ class _FeedViewState extends State<FeedView> {
           }
           if (state is PostError) {
             return Center(
-              child: Text(
-                state.message,
-                textAlign: TextAlign.center,
-              ),
+              child: Text(state.message, textAlign: TextAlign.center),
             );
           }
-
           if (state is PostsLoaded) {
             final posts = state.posts;
             if (posts.isEmpty) {
               return const _EmptyPostsIndicator();
             }
-
             return RefreshIndicator(
               onRefresh: () => context.read<PostCubit>().fetchPosts(),
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 physics: const AlwaysScrollableScrollPhysics(),
                 itemCount: posts.length,
                 itemBuilder: (context, index) {
@@ -81,7 +85,9 @@ class _PostCardWithAuthorState extends State<_PostCardWithAuthor> {
   @override
   void initState() {
     super.initState();
-    _authorFuture = context.read<ProfileCubit>().getProfileUser(widget.post.ownerId);
+    _authorFuture = context.read<ProfileCubit>().getProfileUser(
+      widget.post.ownerId,
+    );
   }
 
   @override
@@ -96,7 +102,9 @@ class _PostCardWithAuthorState extends State<_PostCardWithAuthor> {
         if (snapshot.hasError) {
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
@@ -107,7 +115,8 @@ class _PostCardWithAuthorState extends State<_PostCardWithAuthor> {
           );
         }
 
-        final author = snapshot.data ??
+        final author =
+            snapshot.data ??
             ProfileUser(
               uid: widget.post.ownerId,
               name: 'Unknown user',
@@ -115,7 +124,10 @@ class _PostCardWithAuthorState extends State<_PostCardWithAuthor> {
               createdAt: '',
             );
 
-        return PostCard(post: widget.post, author: author);
+        return PostCard(
+          post: widget.post,
+          author: author,
+        );
       },
     );
   }

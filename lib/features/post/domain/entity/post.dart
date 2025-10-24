@@ -1,11 +1,13 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:social_media/features/post/domain/entity/comment.dart';
 
 class Post {
   final String id;
   final String ownerId;
   final String description;
   final List<String> images;
+  final List<String> likes;
+  final List<Comment> comments;
   final DateTime timestamp;
 
   Post({
@@ -13,6 +15,8 @@ class Post {
     required this.ownerId,
     required this.description,
     required this.images,
+    this.likes = const [],
+    this.comments = const [],
     required this.timestamp,
   });
 
@@ -21,7 +25,13 @@ class Post {
       id: json['id'],
       ownerId: json['ownerId'],
       description: json['description'],
-      images: List<String>.from(json['images']),
+      images: List<String>.from(json['images'] ?? []),
+      likes: List<String>.from(json['likes'] ?? []),
+      comments: json['comments'] == null
+          ? []
+          : (json['comments'] as List)
+              .map<Comment>((e) => Comment.fromJson(e))
+              .toList(),
       timestamp: (json['timestamp'] as Timestamp).toDate(),
     );
   }
@@ -31,21 +41,29 @@ class Post {
       'ownerId': ownerId,
       'description': description,
       'images': images,
-      'timestamp':Timestamp.fromDate(timestamp),
+      'likes': likes,
+      'comments': comments,
+      'timestamp': Timestamp.fromDate(timestamp),
     };
   }
+
   Post copyWith({
     String? id,
     String? ownerId,
     String? description,
     List<String>? images,
+    List<String>? likes,
+    List<Comment>? comments,
     DateTime? timestamp,
   }) {
     return Post(
-        id: id ?? this.id,
-        ownerId: ownerId ?? this.ownerId,
-        description: description ?? this.description,
-        images: images ?? this.images,
-        timestamp: timestamp ?? this.timestamp);
+      id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
+      description: description ?? this.description,
+      images: images ?? this.images,
+      likes: likes ?? this.likes,
+      comments: comments ?? this.comments,
+      timestamp: timestamp ?? this.timestamp,
+    );
   }
 }

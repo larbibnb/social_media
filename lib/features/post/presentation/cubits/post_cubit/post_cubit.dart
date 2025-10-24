@@ -11,7 +11,6 @@ class PostCubit extends Cubit<PostState> {
   final StorageRepo _storageRepo;
   PostCubit(this._postRepo, this._storageRepo) : super(PostInitial());
 
-
   Future<void> fetchPosts() async {
     emit(PostLoading());
     try {
@@ -21,26 +20,28 @@ class PostCubit extends Cubit<PostState> {
       emit(PostError(e.toString()));
     }
   }
-  Future<void> createOrUpdatePost(Post post,{List<String>? pathImages}) async {
+
+  Future<void> createOrUpdatePost(Post post, {List<String>? pathImages}) async {
     try {
       emit(PostLoading());
-       final uploadedUrls = <String>[];
-       if(pathImages != null && pathImages.isNotEmpty){
+      final uploadedUrls = <String>[];
+      if (pathImages != null && pathImages.isNotEmpty) {
         for (var i = 0; i < pathImages.length; i++) {
-         final img = pathImages[i];
-         final uniqueFileName = '${post.id}_$i';
-         final url = await _storageRepo.uploadPostImage(img, uniqueFileName);
-         uploadedUrls.add(url);
-       }
-         post.images.addAll(uploadedUrls);
-         log(post.images.toString());
-       }
+          final img = pathImages[i];
+          final uniqueFileName = '${post.id}_$i';
+          final url = await _storageRepo.uploadPostImage(img, uniqueFileName);
+          uploadedUrls.add(url);
+        }
+        post.images.addAll(uploadedUrls);
+        log(post.images.toString());
+      }
       _postRepo.createOrUpdatePost(post);
       fetchPosts();
     } catch (e) {
       emit(PostError(e.toString()));
     }
   }
+
   Future<void> deletePost(String postId) async {
     try {
       emit(PostLoading());
@@ -50,5 +51,49 @@ class PostCubit extends Cubit<PostState> {
       emit(PostError(e.toString()));
     }
   }
-}
 
+  Future<void> likePost(String postId, String userId) async {
+    try {
+      emit(PostLoading());
+      await _postRepo.likePost(postId, userId);
+      fetchPosts();
+    } catch (e) {
+      emit(PostError(e.toString()));
+    }
+  }
+
+  Future<void> unlikePost(String postId, String userId) async {
+    try {
+      emit(PostLoading());
+      await _postRepo.unlikePost(postId, userId);
+      fetchPosts();
+    } catch (e) {
+      emit(PostError(e.toString()));
+    }
+  }
+
+  Future<void> commentPost(
+    String postId,
+    String ownerId,
+    String ownerName,
+    String description,
+  ) async {
+    try {
+      emit(PostLoading());
+      await _postRepo.commentPost(postId, ownerId, ownerName, description);
+      fetchPosts();
+    } catch (e) {
+      emit(PostError(e.toString()));
+    }
+  }
+
+  Future<void> deleteCommentPost(String postId, String commentId) async {
+    try {
+      emit(PostLoading());
+      await _postRepo.deleteCommentPost(postId, commentId);
+      fetchPosts();
+    } catch (e) {
+      emit(PostError(e.toString()));
+    }
+  }
+}
