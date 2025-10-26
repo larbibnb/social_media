@@ -1,6 +1,8 @@
 import 'package:social_media/features/auth/domain/entities/app_user.dart';
 
 class ProfileUser extends AppUser {
+  final List<String> followers;
+  final List<String> following;
   final String? bio;
   final String? profilePicUrl;
 
@@ -9,6 +11,8 @@ class ProfileUser extends AppUser {
     required super.name,
     required super.email,
     required super.createdAt,
+    this.followers = const [],
+    this.following = const [],
     this.bio,
     this.profilePicUrl =
         'https://sm.ign.com/t/ign_pk/cover/a/avatar-gen/avatar-generations_rpge.600.jpg',
@@ -21,6 +25,8 @@ class ProfileUser extends AppUser {
     String? createdAt,
     String? bio,
     String? profilePicUrl,
+    List<String>? followers,
+    List<String>? following,
   }) {
     return ProfileUser(
       uid: uid ?? this.uid,
@@ -29,6 +35,8 @@ class ProfileUser extends AppUser {
       createdAt: createdAt ?? this.createdAt,
       bio: bio ?? this.bio,
       profilePicUrl: profilePicUrl ?? this.profilePicUrl,
+      followers: followers ?? this.followers,
+      following: following ?? this.following,
     );
   }
 
@@ -43,6 +51,8 @@ class ProfileUser extends AppUser {
       profilePicUrl:
           json['profilePicUrl'] ??
           'https://sm.ign.com/t/ign_pk/cover/a/avatar-gen/avatar-generations_rpge.600.jpg',
+      followers: List<String>.from(json['followers'] ?? []),
+      following: List<String>.from(json['following'] ?? []),
     );
   }
   //profileUser to json format
@@ -55,6 +65,8 @@ class ProfileUser extends AppUser {
       'createdAt': createdAt,
       'bio': bio,
       'profilePicUrl': profilePicUrl,
+      'followers': followers,
+      'following': following,
     };
   }
 }

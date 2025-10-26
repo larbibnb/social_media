@@ -38,17 +38,6 @@ class _PostCardState extends State<PostCard>
   ProfileCubit get _profileCubit => context.read<ProfileCubit>();
   String get _currentUserId => _authCubit.currentUser?.uid ?? 'No user id';
   bool get isLiked => widget.post.likes.contains(_currentUserId);
-  late List<Comment> comments;
-  late final Future<List<ProfileUser?>> commentsUsersFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    comments = widget.post.comments;
-    commentsUsersFuture = Future.wait(
-      comments.map((comment) => _profileCubit.getProfileUser(comment.ownerId)),
-    );
-  }
 
   @override
   bool get wantKeepAlive => true;

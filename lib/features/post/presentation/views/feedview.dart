@@ -22,15 +22,8 @@ class _FeedViewState extends State<FeedView> {
   }
 
   @override
-  void dispose() {
-    super.dispose();
-    context.read<PostCubit>().close();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Feed')),
       body: BlocBuilder<PostCubit, PostState>(
         builder: (context, state) {
           if (state is PostLoading || state is PostInitial) {
@@ -124,10 +117,7 @@ class _PostCardWithAuthorState extends State<_PostCardWithAuthor> {
               createdAt: '',
             );
 
-        return PostCard(
-          post: widget.post,
-          author: author,
-        );
+        return PostCard(post: widget.post, author: author);
       },
     );
   }

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/auth/data/firebase_auth_repo.dart';
@@ -12,6 +13,9 @@ import 'package:social_media/features/post/presentation/cubits/post_cubit/post_c
 import 'package:social_media/features/profile/data/firebase_profile_data.dart';
 import 'package:social_media/features/profile/domain/repo/profile_repo.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
+import 'package:social_media/features/search/data/search_repo_imp.dart';
+import 'package:social_media/features/search/domain/search_repo.dart';
+import 'package:social_media/features/search/presentation/cubit/search_cubit.dart';
 import 'package:social_media/features/storage/data/firebase_storage_repo.dart';
 import 'package:social_media/features/storage/domain/storage_repo.dart';
 import 'package:social_media/themes/light_mode.dart';
@@ -49,9 +53,11 @@ Chek AuthState
 
 class MyApp extends StatelessWidget {
   AuthRepo authRepo = FirebaseAuthRepo();
-  ProfileRepo profileRepo = FirebaseProfileRepo();
+  ProfileRepo profileRepo = FirebaseProfileRepo(FirebaseFirestore.instance);
   PostRepo postRepo = PostRepoImp();
   StorageRepo storageRepo = FirebaseStorageRepo();
+  SearchRepo searchRepo = SearchRepoImpl(firestore: FirebaseFirestore.instance);
+
   MyApp({super.key});
 
   // This widget is the root of your application.
@@ -62,6 +68,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => AuthCubit(authRepo)..chekAuth()),
         BlocProvider(create: (context) => ProfileCubit(profileRepo)),
         BlocProvider(create: (context) => PostCubit(postRepo, storageRepo)),
+        BlocProvider(create: (context) => SearchCubit(searchRepo)),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

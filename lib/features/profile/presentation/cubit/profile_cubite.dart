@@ -7,7 +7,6 @@ import 'package:social_media/features/profile/presentation/cubit/profile_state.d
 class ProfileCubit extends Cubit<ProfileState> {
   ProfileRepo profileRepo;
   ProfileCubit(this.profileRepo) : super(ProfileInitial());
-
   Future<ProfileUser?> getProfileUser(String uid) async {
     try {
       emit(ProfileLoading());
@@ -17,7 +16,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       }
       return profileUser;
     } catch (e) {
-      emit(ProfileError('Cubit Get profile user failed: ${e.toString() }'));
+      emit(ProfileError('Cubit Get profile user failed: ${e.toString()}'));
       return null;
     }
   }
@@ -31,6 +30,14 @@ class ProfileCubit extends Cubit<ProfileState> {
       await profileRepo.updateProfileUser(updatedprofileUser, pickedFile);
       getProfileUser(updatedprofileUser.uid);
       emit(ProfileLoaded(updatedprofileUser));
+    } catch (e) {
+      emit(ProfileError(e.toString()));
+    }
+  }
+
+  Future<void> toggleFollowUser(String myUid, String uid) async {
+    try {
+      await profileRepo.toggleFollowUser(myUid, uid);
     } catch (e) {
       emit(ProfileError(e.toString()));
     }
