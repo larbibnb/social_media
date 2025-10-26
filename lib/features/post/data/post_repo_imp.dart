@@ -23,13 +23,11 @@ class PostRepoImp extends PostRepo {
         final comments =
             commentsSnapshot.docs.map((commentDoc) {
               final data = commentDoc.data();
-              data['id'] = commentDoc.id; // Add document ID to comment data
               return Comment.fromJson(data);
             }).toList();
 
         postsList.add(Post.fromJson(doc.data(), comments: comments));
       }
-
       return postsList;
     } catch (e) {
       throw Exception('error fetching posts $e');
@@ -66,17 +64,24 @@ class PostRepoImp extends PostRepo {
   }
 
   @override
-  Future<void> likePost(String postId, String userId) async {
-    await postsCollection.doc(postId).update({
-      'likes': FieldValue.arrayUnion([userId]),
-    });
-  }
-
-  @override
-  Future<void> unlikePost(String postId, String userId) async {
-    await postsCollection.doc(postId).update({
-      'likes': FieldValue.arrayRemove([userId]),
-    });
+  Future<void> toggleLikePost(String postId, String userId) async {
+    try {
+      final postDoc = await postsCollection.doc(postId).get();
+      if (postDoc.exists) {
+        final post = Post.fromJson(postDoc.data()!);
+        final isLiked = post.likes.contains(userId);
+        if (isLiked) {
+          post.likes.remove(userId);
+        } else {
+          post.likes.add(userId);
+        }
+        await postsCollection.doc(postId).set(post.toJson());
+      } else {
+        throw Exception('Post not found');
+      }
+    } catch (e) {
+      throw Exception(e.toString());
+    }
   }
 
   @override
@@ -86,13 +91,22 @@ class PostRepoImp extends PostRepo {
     String ownerName,
     String description,
   ) async {
-    await postsCollection.doc(postId).collection('comments').add({
-      'ownerId': ownerId,
-      'ownerName': ownerName,
-      'postId': postId,
-      'description': description,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+    final commentDoc = await postsCollection
+        .doc(postId)
+        .collection('comments')
+        .add({
+          'id': '',
+          'ownerId': ownerId,
+          'ownerName': ownerName,
+          'postId': postId,
+          'description': description,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+    await postsCollection
+        .doc(postId)
+        .collection('comments')
+        .doc(commentDoc.id)
+        .update({'id': commentDoc.id});
   }
 
   @override

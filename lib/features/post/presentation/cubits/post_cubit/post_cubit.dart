@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:social_media/features/post/domain/entity/comment.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/domain/repo/post_repo.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
@@ -52,21 +53,9 @@ class PostCubit extends Cubit<PostState> {
     }
   }
 
-  Future<void> likePost(String postId, String userId) async {
+  Future<void> toggleLikePost(String postId, String userId) async {
     try {
-      emit(PostLoading());
-      await _postRepo.likePost(postId, userId);
-      fetchPosts();
-    } catch (e) {
-      emit(PostError(e.toString()));
-    }
-  }
-
-  Future<void> unlikePost(String postId, String userId) async {
-    try {
-      emit(PostLoading());
-      await _postRepo.unlikePost(postId, userId);
-      fetchPosts();
+      await _postRepo.toggleLikePost(postId, userId);
     } catch (e) {
       emit(PostError(e.toString()));
     }
@@ -78,20 +67,42 @@ class PostCubit extends Cubit<PostState> {
     String ownerName,
     String description,
   ) async {
+    final currentState = state;
+    if (currentState is! PostsLoaded) return;
+
+    final newComment = Comment(
+      id: '',
+      ownerId: ownerId,
+      ownerName: ownerName,
+      postId: postId,
+      description: description,
+      timestamp: DateTime.now(),
+    );
+
+    // Optimistic UI update
+    final updatedPosts =
+        currentState.posts.map((post) {
+          if (post.id == postId) {
+            final updatedComments = List<Comment>.from(post.comments)
+              ..add(newComment);
+            return post.copyWith(comments: updatedComments);
+          }
+          return post;
+        }).toList();
+    emit(PostsLoaded(updatedPosts));
+
     try {
-      emit(PostLoading());
       await _postRepo.commentPost(postId, ownerId, ownerName, description);
-      fetchPosts();
     } catch (e) {
-      emit(PostError(e.toString()));
+      // Revert on error
+      emit(currentState); // Re-emit the original state
+      emit(PostError('Failed to post comment: ${e.toString()}'));
     }
   }
 
   Future<void> deleteCommentPost(String postId, String commentId) async {
     try {
-      emit(PostLoading());
       await _postRepo.deleteCommentPost(postId, commentId);
-      fetchPosts();
     } catch (e) {
       emit(PostError(e.toString()));
     }

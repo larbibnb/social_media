@@ -16,6 +16,211 @@ class ProfileView extends StatefulWidget {
   State<ProfileView> createState() => _ProfileViewState();
 }
 
+// -- Reusable private widgets for a softer/profile UI --
+
+class _ProfileHeader extends StatelessWidget {
+  final dynamic profileUser;
+  const _ProfileHeader({required this.profileUser});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child:
+                profileUser.profilePicUrl != null
+                    ? CachedNetworkImage(
+                      imageUrl: profileUser.profilePicUrl!,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                      placeholder:
+                          (c, u) => Container(
+                            width: 120,
+                            height: 120,
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                      errorWidget:
+                          (c, u, e) => Container(
+                            width: 120,
+                            height: 120,
+                            color: Colors.grey.shade200,
+                            child: Icon(Icons.error),
+                          ),
+                    )
+                    : Container(
+                      width: 120,
+                      height: 120,
+                      color: Colors.grey.shade200,
+                      child: Center(
+                        child: Text(
+                          profileUser.name.characters.first.toUpperCase(),
+                          style: TextStyle(fontSize: 36),
+                        ),
+                      ),
+                    ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  profileUser.name,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  profileUser.email,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Joined in ${profileUser.createdAt}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final bool isCurrentUser;
+  final VoidCallback? onTap;
+  const _ActionButton({required this.isCurrentUser, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        width: double.infinity,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color:
+              isCurrentUser
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: Offset(0, 6),
+            ),
+          ],
+          border: Border.all(color: Colors.transparent),
+        ),
+        child: Center(
+          child: Text(
+            isCurrentUser ? 'Edit Profile' : 'Follow',
+            style: TextStyle(
+              color:
+                  isCurrentUser
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.primary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  const _InfoChip({required this.label, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 8),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String count;
+  final String label;
+  const _StatCard({required this.count, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        height: 100,
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              count,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(label, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ProfileViewState extends State<ProfileView>
     with SingleTickerProviderStateMixin {
   late TabController tabBarController;
@@ -51,53 +256,9 @@ class _ProfileViewState extends State<ProfileView>
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      SizedBox(
-                        height: 200,
-                        width: double.infinity,
-                        child: Row(
-                          children: [
-                            CachedNetworkImage(
-                              imageUrl: profileUser.profilePicUrl!,
-                              placeholder:
-                                  (context, url) => CircularProgressIndicator(),
-                              errorWidget:
-                                  (context, url, error) => Icon(Icons.error),
-                              imageBuilder:
-                                  (context, imageProvider) => Container(
-                                    height: 120,
-                                    width: 120,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      image: DecorationImage(
-                                        image: imageProvider,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                            ),
-                            SizedBox(width: 40),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  profileUser.name,
-                                  style: TextStyle(fontSize: 32),
-                                ),
-                                Text(
-                                  profileUser.email,
-                                  style: TextStyle(fontSize: 24),
-                                ),
-                                Text(
-                                  'Joined in ${profileUser.createdAt}',
-                                  style: TextStyle(fontSize: 18),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
+                      _ProfileHeader(profileUser: profileUser),
+                      _ActionButton(
+                        isCurrentUser: isCurrentUser,
                         onTap: () {
                           if (isCurrentUser) {
                             Navigator.push(
@@ -110,25 +271,6 @@ class _ProfileViewState extends State<ProfileView>
                             );
                           }
                         },
-                        child: Container(
-                          height: 50,
-                          width: double.infinity,
-                          padding: EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Edit Profile',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
                       ),
                       SizedBox(height: 20),
                       Align(
@@ -162,201 +304,38 @@ class _ProfileViewState extends State<ProfileView>
                         spacing: 10,
                         runSpacing: 10,
                         children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            height: 50,
-                            padding: EdgeInsets.all(10),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Icon(Icons.person), Text('music')],
-                            ),
+                          _InfoChip(label: 'Music', icon: Icons.music_note),
+                          _InfoChip(
+                            label: 'Health',
+                            icon: Icons.health_and_safety,
                           ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            height: 50,
-                            padding: EdgeInsets.all(10),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Icon(Icons.person), Text('Health')],
-                            ),
+                          _InfoChip(
+                            label: 'Tech Enthusiast',
+                            icon: Icons.computer,
                           ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            height: 50,
-                            padding: EdgeInsets.all(10),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.person),
-                                Text('Tech Enthusiast'),
-                              ],
-                            ),
+                          _InfoChip(label: 'Movies Fan', icon: Icons.movie),
+                          _InfoChip(
+                            label: 'Football',
+                            icon: Icons.sports_football,
                           ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            height: 50,
-                            padding: EdgeInsets.all(10),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.person),
-                                Text('Movies Fan'),
-                              ],
-                            ),
+                          _InfoChip(
+                            label: 'Photography',
+                            icon: Icons.camera_alt,
                           ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            height: 50,
-                            padding: EdgeInsets.all(10),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Icon(Icons.person), Text('FootBall')],
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            height: 50,
-                            padding: EdgeInsets.all(10),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.person),
-                                Text('Photography'),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            height: 50,
-                            padding: EdgeInsets.all(10),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Icon(Icons.person), Text('Sport Fan')],
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blueAccent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            height: 50,
-                            padding: EdgeInsets.all(10),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Icon(Icons.person), Text('Travel')],
-                            ),
+                          _InfoChip(label: 'Sport Fan', icon: Icons.sports),
+                          _InfoChip(
+                            label: 'Travel',
+                            icon: Icons.travel_explore,
                           ),
                         ],
                       ),
                       SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            width: 120,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: Colors.blueAccent,
-                                width: 2,
-                              ),
-                            ),
-                            padding: EdgeInsets.all(10),
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('120', style: TextStyle(fontSize: 24)),
-                                  Text(
-                                    'Following',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 120,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: Colors.blueAccent,
-                                width: 2,
-                              ),
-                            ),
-                            padding: EdgeInsets.all(10),
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('542', style: TextStyle(fontSize: 24)),
-                                  Text(
-                                    'Following',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 120,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: Colors.blueAccent,
-                                width: 2,
-                              ),
-                            ),
-                            padding: EdgeInsets.all(10),
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('1455', style: TextStyle(fontSize: 24)),
-                                  Text(
-                                    'likes',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        children: const [
+                          _StatCard(count: '120', label: 'Following'),
+                          _StatCard(count: '542', label: 'Followers'),
+                          _StatCard(count: '1455', label: 'Likes'),
                         ],
                       ),
                       SizedBox(height: 20),

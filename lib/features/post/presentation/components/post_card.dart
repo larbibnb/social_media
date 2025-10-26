@@ -9,7 +9,6 @@ import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
-import 'package:social_media/features/profile/presentation/cubit/profile_state.dart';
 
 class PostCard extends StatefulWidget {
   final Post post;
@@ -34,11 +33,22 @@ class _PostCardState extends State<PostCard>
   static const int _compactCommentCount = 2;
   bool _showAllComments = false;
   final TextEditingController _commentController = TextEditingController();
-
   AuthCubit get _authCubit => context.read<AuthCubit>();
   PostCubit get _postCubit => context.read<PostCubit>();
   ProfileCubit get _profileCubit => context.read<ProfileCubit>();
-  String get _currentUserId => _authCubit.currentUser?.uid ?? '';
+  String get _currentUserId => _authCubit.currentUser?.uid ?? 'No user id';
+  bool get isLiked => widget.post.likes.contains(_currentUserId);
+  late List<Comment> comments;
+  late final Future<List<ProfileUser?>> commentsUsersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    comments = widget.post.comments;
+    commentsUsersFuture = Future.wait(
+      comments.map((comment) => _profileCubit.getProfileUser(comment.ownerId)),
+    );
+  }
 
   @override
   bool get wantKeepAlive => true;
@@ -51,11 +61,22 @@ class _PostCardState extends State<PostCard>
   }
 
   void _onLike() {
-    if (!widget.post.likes.contains(_currentUserId)) {
-      _postCubit.likePost(widget.post.id, _currentUserId);
-    } else {
-      _postCubit.unlikePost(widget.post.id, _currentUserId);
-    }
+    setState(() {
+      if (isLiked) {
+        widget.post.likes.remove(_currentUserId);
+      } else {
+        widget.post.likes.add(_currentUserId);
+      }
+    });
+    _postCubit.toggleLikePost(widget.post.id, _currentUserId).catchError((e) {
+      setState(() {
+        if (isLiked) {
+          widget.post.likes.add(_currentUserId);
+        } else {
+          widget.post.likes.remove(_currentUserId);
+        }
+      });
+    });
   }
 
   void _onComment() {
@@ -69,13 +90,13 @@ class _PostCardState extends State<PostCard>
           currentUser.name,
           comment,
         );
+        // The UI will update automatically when the PostCubit emits a new state.
+        // We can clear the controller and hide the sheet optimistically.
         _commentController.clear();
-        setState(() => _showAllComments = false);
+        setState(() {
+          _showAllComments = false;
+        });
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to comment.')),
-      );
     }
   }
 
@@ -211,7 +232,7 @@ class _PostCardState extends State<PostCard>
               children: [
                 _PostActions(
                   onLike: _onLike,
-                  isLiked: post.likes.contains(_currentUserId),
+                  isLiked: isLiked,
                   likeCount: post.likes.length,
                   commentCount: post.comments.length,
                   showComments: _toggleComments,

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,6 +19,7 @@ class _EditProfileViewState extends State<EditProfileView> {
   final nameController = TextEditingController();
   final bioController = TextEditingController();
   PlatformFile? pickedFile;
+
   Future<void> pickImage() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -67,7 +70,7 @@ class _EditProfileViewState extends State<EditProfileView> {
         if (state is ProfileLoaded) {
           return Scaffold(
             appBar: AppBar(
-              title: Text('Edit Profile'),
+              title: const Text('Edit Profile'),
               centerTitle: true,
               actions: [
                 IconButton(
@@ -75,56 +78,171 @@ class _EditProfileViewState extends State<EditProfileView> {
                     updateProfile(widget.user);
                     Navigator.pop(context);
                   },
-                  icon: Icon(Icons.check),
+                  icon: const Icon(Icons.check),
                 ),
               ],
             ),
-            body: Column(
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(hintText: 'Name'),
-                ),
-                TextField(
-                  controller: bioController,
-                  decoration: InputDecoration(hintText: 'Bio'),
-                ),
-                SizedBox(height: 20),
-                GestureDetector(
-                  onTap: () {
-                    pickImage();
-                  },
-                  child: Container(
-                    height: 50,
-                    width: double.infinity,
-                    padding: EdgeInsets.all(10),
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Profile picture + pick button
+                  _ProfilePicture(
+                    profileUrl: widget.user.profilePicUrl,
+                    pickedFile: pickedFile,
+                    onPick: pickImage,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Form card
+                  Container(
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Change Profile Picture',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 6),
                         ),
-                      ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: nameController,
+                          decoration: const InputDecoration(labelText: 'Name'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: bioController,
+                          maxLines: 4,
+                          decoration: const InputDecoration(
+                            labelText: 'Bio',
+                            alignLabelWithHint: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              updateProfile(widget.user);
+                              Navigator.pop(context);
+                            },
+                            icon: const Icon(Icons.save),
+                            label: const Text('Save'),
+                            style: ElevatedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         } else if (state is ProfileLoading) {
-          return Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         } else {
           return Scaffold(
             body: Center(child: Text((state as ProfileError).error)),
           );
         }
       },
+    );
+  }
+}
+
+class _ProfilePicture extends StatelessWidget {
+  final String? profileUrl;
+  final PlatformFile? pickedFile;
+  final VoidCallback onPick;
+
+  const _ProfilePicture({
+    this.profileUrl,
+    this.pickedFile,
+    required this.onPick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = 64.0;
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: SizedBox(
+                  width: radius * 2,
+                  height: radius * 2,
+                  child:
+                      pickedFile != null && pickedFile!.path != null
+                          ? Image.file(
+                            File(pickedFile!.path!),
+                            fit: BoxFit.cover,
+                          )
+                          : (profileUrl != null && profileUrl!.isNotEmpty
+                              ? Image.network(profileUrl!, fit: BoxFit.cover)
+                              : Container(
+                                color: Colors.grey.shade200,
+                                child: const Center(
+                                  child: Icon(Icons.person, size: 48),
+                                ),
+                              )),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: onPick,
+                    child: const Text('Change'),
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Remove'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
