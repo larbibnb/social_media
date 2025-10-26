@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart' as intl;
@@ -32,6 +33,7 @@ class _PostCardState extends State<PostCard>
     with AutomaticKeepAliveClientMixin<PostCard> {
   static const int _compactCommentCount = 2;
   bool _showAllComments = false;
+  final TextEditingController _commentController = TextEditingController();
 
   AuthCubit get _authCubit => context.read<AuthCubit>();
   PostCubit get _postCubit => context.read<PostCubit>();
@@ -43,6 +45,9 @@ class _PostCardState extends State<PostCard>
 
   void _toggleComments() {
     setState(() => _showAllComments = !_showAllComments);
+    if (_showAllComments) {
+      _showCommentsSheet();
+    }
   }
 
   void _onLike() {
@@ -56,34 +61,17 @@ class _PostCardState extends State<PostCard>
   void _onComment() {
     final currentUser = _authCubit.currentUser;
     if (currentUser != null) {
-      showDialog(
-        context: context,
-        builder: (context) {
-          String comment = '';
-          return AlertDialog(
-            title: const Text('Add a comment'),
-            content: TextField(onChanged: (value) => comment = value),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  _postCubit.commentPost(
-                    widget.post.id,
-                    currentUser.uid,
-                    currentUser.name,
-                    comment,
-                  );
-                  Navigator.pop(context);
-                },
-                child: const Text('Post'),
-              ),
-            ],
-          );
-        },
-      );
+      final comment = _commentController.text.trim();
+      if (comment.isNotEmpty) {
+        _postCubit.commentPost(
+          widget.post.id,
+          currentUser.uid,
+          currentUser.name,
+          comment,
+        );
+        _commentController.clear();
+        setState(() => _showAllComments = false);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to comment.')),
@@ -100,7 +88,15 @@ class _PostCardState extends State<PostCard>
       ),
       builder: (context) {
         if (widget.post.likes.isEmpty) {
-          return const _EmptyState(message: 'No likes yet');
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              top: 24,
+            ),
+            child: const _EmptyState(message: 'No likes yet'),
+          );
         }
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -115,8 +111,8 @@ class _PostCardState extends State<PostCard>
                   Text(
                     'Liked by ${widget.post.likes.length} people',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -144,18 +140,27 @@ class _PostCardState extends State<PostCard>
 
   void _showCommentsSheet() {
     final comments = widget.post.comments;
-    if (comments.isEmpty) {
-      _toggleComments();
+    if (!_showAllComments && comments.length <= _compactCommentCount) {
       return;
     }
-
-    showModalBottomSheet<void>(
+    showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
+        if (widget.post.comments.isEmpty) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              top: 24,
+            ),
+            child: const _EmptyState(message: 'No comments yet'),
+          );
+        }
         return Padding(
           padding: EdgeInsets.only(
             left: 16,
@@ -209,7 +214,7 @@ class _PostCardState extends State<PostCard>
                   isLiked: post.likes.contains(_currentUserId),
                   likeCount: post.likes.length,
                   commentCount: post.comments.length,
-                  onComment: _onComment,
+                  showComments: _toggleComments,
                   onShare: widget.onShare,
                   onLikesTap: _showLikesSheet,
                 ),
@@ -226,8 +231,7 @@ class _PostCardState extends State<PostCard>
                     ),
                   ),
                 const SizedBox(height: 8),
-                if (post.comments.isNotEmpty)
-                  _buildCommentsSection(post.comments, theme),
+                _buildCommentsSection(post.comments, _onComment, theme),
               ],
             ),
           ),
@@ -236,15 +240,27 @@ class _PostCardState extends State<PostCard>
     );
   }
 
-  Widget _buildCommentsSection(List<Comment> comments, ThemeData theme) {
-    final visibleComments =
-        _showAllComments
-            ? comments
-            : comments.take(_compactCommentCount).toList();
-
+  Widget _buildCommentsSection(
+    List<Comment> comments,
+    VoidCallback onComment,
+    ThemeData theme,
+  ) {
+    final visibleComments = comments.take(_compactCommentCount).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        TextField(
+          controller: _commentController,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderSide: BorderSide.none),
+            hintText: 'Add a comment...',
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.add_comment_outlined),
+              onPressed: onComment,
+            ),
+          ),
+        ),
+        const Divider(height: 16),
         ...visibleComments.map(
           (comment) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -301,7 +317,7 @@ class _PostHeader extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: theme.colorScheme.surfaceVariant,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
             backgroundImage:
                 author.profilePicUrl != null
                     ? CachedNetworkImageProvider(author.profilePicUrl!)
@@ -343,7 +359,7 @@ class _PostActions extends StatelessWidget {
   final int likeCount;
   final int commentCount;
   final VoidCallback? onLike;
-  final VoidCallback? onComment;
+  final VoidCallback? showComments;
   final VoidCallback? onShare;
   final VoidCallback? onLikesTap;
 
@@ -352,7 +368,7 @@ class _PostActions extends StatelessWidget {
     required this.likeCount,
     required this.commentCount,
     this.onLike,
-    this.onComment,
+    this.showComments,
     this.onShare,
     this.onLikesTap,
   });
@@ -379,7 +395,7 @@ class _PostActions extends StatelessWidget {
         const SizedBox(width: 16),
         IconButton(
           icon: const Icon(Icons.chat_bubble_outline),
-          onPressed: onComment,
+          onPressed: showComments,
         ),
         Text(
           intl.NumberFormat.compact().format(commentCount),
@@ -492,30 +508,31 @@ class _CommentTile extends StatefulWidget {
 }
 
 class _CommentTileState extends State<_CommentTile> {
+  late final Future<ProfileUser?> _userFuture;
+
   @override
   void initState() {
     super.initState();
-    // Fetch user profile if not already loaded.
-    // A better long-term solution is a cached repository or cubit.
-    context.read<ProfileCubit>().getProfileUser(widget.comment.ownerId);
+    _userFuture = context.read<ProfileCubit>().getProfileUser(
+      widget.comment.ownerId,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ProfileCubit, ProfileState>(
-      // Rebuild only when the relevant profile is loaded.
-      // This is still not perfect as it listens to all ProfileState changes.
-      // A more advanced solution would use BlocSelector or a dedicated cubit per tile.
-      builder: (context, state) {
-        if (state is ProfileLoaded &&
-            state.profileUser.uid == widget.comment.ownerId) {
-          return _CommentContent(
-            username: state.profileUser.name,
-            profilePicUrl: state.profileUser.profilePicUrl,
-            description: widget.comment.description,
-          );
+    return FutureBuilder<ProfileUser?>(
+      future: _userFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _CommentSkeleton();
         }
-        return const _CommentSkeleton();
+        final user = snapshot.data;
+        return _CommentContent(
+          username: user?.name ?? 'Unknown User',
+          profilePicUrl: user?.profilePicUrl,
+          description: widget.comment.description,
+          timeStamp: widget.comment.timestamp,
+        );
       },
     );
   }
@@ -525,11 +542,13 @@ class _CommentContent extends StatelessWidget {
   final String username;
   final String? profilePicUrl;
   final String description;
+  final DateTime timeStamp;
 
   const _CommentContent({
     required this.username,
     required this.profilePicUrl,
     required this.description,
+    required this.timeStamp,
   });
 
   @override
@@ -560,8 +579,13 @@ class _CommentContent extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(description, style: theme.textTheme.bodyMedium),
+              const SizedBox(height: 8),
+              Text(
+                intl.DateFormat('MMM d • h:mm a').format(timeStamp),
+                style: theme.textTheme.bodySmall,
+              ),
             ],
           ),
         ),
@@ -609,22 +633,20 @@ class _CommentSkeleton extends StatelessWidget {
 
 class _CommentsList extends StatelessWidget {
   final List<Comment> comments;
-
   const _CommentsList({required this.comments});
 
   @override
   Widget build(BuildContext context) {
-    if (comments.isEmpty) {
-      return const _EmptyState(message: 'No comments yet');
-    }
-
     return ListView.separated(
       shrinkWrap: true,
       itemCount: comments.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, __) => const Divider(height: 16),
       itemBuilder: (context, index) {
         final comment = comments[index];
-        return _CommentTile(comment: comment);
+        return BlocProvider.value(
+          value: context.read<ProfileCubit>(),
+          child: _CommentTile(comment: comment),
+        );
       },
     );
   }
@@ -644,11 +666,16 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(Icons.inbox_outlined, size: 48, color: theme.disabledColor),
           const SizedBox(height: 12),
-          Text(
-            message,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
         ],
       ),

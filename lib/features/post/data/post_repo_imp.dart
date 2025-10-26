@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:social_media/features/post/domain/entity/comment.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/domain/repo/post_repo.dart';
 
@@ -11,8 +12,24 @@ class PostRepoImp extends PostRepo {
       final postsSnapshot =
           await postsCollection.orderBy('timestamp', descending: true).get();
       final postsdocsList = postsSnapshot.docs;
-      final postsList =
-          postsdocsList.map((doc) => Post.fromJson(doc.data())).toList();
+
+      final postsList = <Post>[];
+      for (final doc in postsdocsList) {
+        final commentsSnapshot =
+            await doc.reference
+                .collection('comments')
+                .orderBy('timestamp', descending: true)
+                .get();
+        final comments =
+            commentsSnapshot.docs.map((commentDoc) {
+              final data = commentDoc.data();
+              data['id'] = commentDoc.id; // Add document ID to comment data
+              return Comment.fromJson(data);
+            }).toList();
+
+        postsList.add(Post.fromJson(doc.data(), comments: comments));
+      }
+
       return postsList;
     } catch (e) {
       throw Exception('error fetching posts $e');

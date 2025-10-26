@@ -20,18 +20,14 @@ class Post {
     required this.timestamp,
   });
 
-  factory Post.fromJson(Map<String, dynamic> json) {
+  factory Post.fromJson(Map<String, dynamic> json, {List<Comment>? comments}) {
     return Post(
       id: json['id'],
       ownerId: json['ownerId'],
       description: json['description'],
       images: List<String>.from(json['images'] ?? []),
       likes: List<String>.from(json['likes'] ?? []),
-      comments: json['comments'] == null
-          ? []
-          : (json['comments'] as List)
-              .map<Comment>((e) => Comment.fromJson(e))
-              .toList(),
+      comments: comments ?? [],
       timestamp: (json['timestamp'] as Timestamp).toDate(),
     );
   }
@@ -42,7 +38,6 @@ class Post {
       'description': description,
       'images': images,
       'likes': likes,
-      'comments': comments,
       'timestamp': Timestamp.fromDate(timestamp),
     };
   }
