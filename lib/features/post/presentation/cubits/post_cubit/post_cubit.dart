@@ -47,7 +47,7 @@ class PostCubit extends Cubit<PostState> {
     try {
       emit(PostLoading());
       await _postRepo.deletePost(postId);
-      emit(PostInitial());
+      fetchPosts();
     } catch (e) {
       emit(PostError(e.toString()));
     }
@@ -101,10 +101,26 @@ class PostCubit extends Cubit<PostState> {
   }
 
   Future<void> deleteCommentPost(String postId, String commentId) async {
+    final currentState = state;
+    if (currentState is! PostsLoaded) return;
+    final updatedPosts =
+        currentState.posts.map((post) {
+          if (post.id == postId) {
+            final updatedComments =
+                post.comments
+                    .where((comment) => comment.id != commentId)
+                    .toList();
+            return post.copyWith(comments: updatedComments);
+          }
+          return post;
+        }).toList();
+    emit(PostsLoaded(updatedPosts));
     try {
       await _postRepo.deleteCommentPost(postId, commentId);
     } catch (e) {
-      emit(PostError(e.toString()));
+      // Revert on error
+      emit(currentState); // Re-emit the original state
+      emit(PostError('Failed to delete comment: ${e.toString()}'));
     }
   }
 }

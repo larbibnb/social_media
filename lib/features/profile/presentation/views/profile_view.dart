@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:ffi';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,179 @@ class ProfileView extends StatefulWidget {
 
   @override
   State<ProfileView> createState() => _ProfileViewState();
+}
+
+class _ProfileViewState extends State<ProfileView>
+    with SingleTickerProviderStateMixin {
+  late TabController tabBarController;
+  late final authCubit = context.read<AuthCubit>();
+  late final profileCubit = context.read<ProfileCubit>();
+
+  @override
+  void initState() {
+    super.initState();
+    profileCubit.getProfileUser(widget.uid);
+    tabBarController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    tabBarController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ProfileCubit, ProfileState>(
+      builder: (context, state) {
+        if (state is ProfileLoaded) {
+          final profileUser = state.profileUser;
+          final currentUser = context.read<AuthCubit>().currentUser;
+          final isCurrentUser = profileUser.uid == currentUser!.uid;
+          bool isFollowing = profileUser.followers.contains(currentUser.uid);
+          log('$isCurrentUser');
+          return Scaffold(
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _ProfileHeader(profileUser: profileUser),
+                      _ActionButton(
+                        isCurrentUser: isCurrentUser,
+                        isFollowing: isFollowing,
+                        onTap: () {
+                          if (isCurrentUser) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) =>
+                                        EditProfileView(user: profileUser),
+                              ),
+                            );
+                          } else {
+                            context.read<ProfileCubit>().toggleFollowUser(
+                              currentUser.uid,
+                              profileUser.uid,
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isFollowing
+                                      ? 'Unfollowing ${profileUser.name}'
+                                      : 'Following ${profileUser.name}',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Bio',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      SizedBox(
+                        child:
+                            isCurrentUser
+                                ? Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    profileUser.bio ??
+                                        'what best describes you  ...',
+                                  ),
+                                )
+                                : Text(
+                                  profileUser.bio ?? '',
+                                  overflow: TextOverflow.fade,
+                                ),
+                      ),
+                      SizedBox(height: 20),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          _InfoChip(label: 'Music', icon: Icons.music_note),
+                          _InfoChip(
+                            label: 'Health',
+                            icon: Icons.health_and_safety,
+                          ),
+                          _InfoChip(
+                            label: 'Tech Enthusiast',
+                            icon: Icons.computer,
+                          ),
+                          _InfoChip(label: 'Movies Fan', icon: Icons.movie),
+                          _InfoChip(
+                            label: 'Football',
+                            icon: Icons.sports_football,
+                          ),
+                          _InfoChip(
+                            label: 'Photography',
+                            icon: Icons.camera_alt,
+                          ),
+                          _InfoChip(label: 'Sport Fan', icon: Icons.sports),
+                          _InfoChip(
+                            label: 'Travel',
+                            icon: Icons.travel_explore,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _StatCard(
+                            count: profileUser.following.length.toString(),
+                            label: 'Following',
+                          ),
+                          _StatCard(
+                            count: profileUser.followers.length.toString(),
+                            label: 'Followers',
+                          ),
+                          const _StatCard(count: '1455', label: 'Likes'),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      TabBar(
+                        controller: tabBarController,
+                        tabs: [Tab(text: 'Posts'), Tab(text: 'Collections')],
+                      ),
+                      SizedBox(height: 20),
+                      SizedBox(
+                        height: 500,
+                        child: TabBarView(
+                          controller: tabBarController,
+                          children: [
+                            Center(child: Text('Posts')),
+                            Center(child: Text('Collections')),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else if (state is ProfileLoading) {
+          return Scaffold(body: Center(child: CircularProgressIndicator()));
+        } else {
+          return Scaffold(
+            body: Center(child: Text((state as ProfileError).error)),
+          );
+        }
+      },
+    );
+  }
 }
 
 // -- Reusable private widgets for a softer/profile UI --
@@ -50,7 +224,7 @@ class _ProfileHeader extends StatelessWidget {
                       height: 120,
                       fit: BoxFit.cover,
                       placeholder:
-                          (c, u) => Container(
+                          (c, u) => SizedBox(
                             width: 120,
                             height: 120,
                             child: Center(child: CircularProgressIndicator()),
@@ -110,8 +284,13 @@ class _ProfileHeader extends StatelessWidget {
 
 class _ActionButton extends StatelessWidget {
   final bool isCurrentUser;
+  final bool isFollowing;
   final VoidCallback? onTap;
-  const _ActionButton({required this.isCurrentUser, this.onTap});
+  const _ActionButton({
+    required this.isCurrentUser,
+    required this.isFollowing,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +317,9 @@ class _ActionButton extends StatelessWidget {
         ),
         child: Center(
           child: Text(
-            isCurrentUser ? 'Edit Profile' : 'Follow',
+            isCurrentUser
+                ? 'Edit Profile'
+                : (isFollowing ? 'Unfollow' : 'Follow'),
             style: TextStyle(
               color:
                   isCurrentUser
@@ -217,157 +398,6 @@ class _StatCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _ProfileViewState extends State<ProfileView>
-    with SingleTickerProviderStateMixin {
-  late TabController tabBarController;
-  late final authCubit = context.read<AuthCubit>();
-  late final profileCubit = context.read<ProfileCubit>();
-  late final currentUser = authCubit.currentUser;
-
-  @override
-  void initState() {
-    super.initState();
-    profileCubit.getProfileUser(widget.uid);
-    tabBarController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    tabBarController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<ProfileCubit, ProfileState>(
-      builder: (context, state) {
-        if (state is ProfileLoaded) {
-          final profileUser = state.profileUser;
-          final isCurrentUser = profileUser.uid == currentUser!.uid;
-          log('$isCurrentUser');
-          return Scaffold(
-            body: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 25),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _ProfileHeader(profileUser: profileUser),
-                      _ActionButton(
-                        isCurrentUser: isCurrentUser,
-                        onTap: () {
-                          if (isCurrentUser) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) =>
-                                        EditProfileView(user: profileUser),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                      SizedBox(height: 20),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Bio',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      SizedBox(
-                        child:
-                            isCurrentUser
-                                ? Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    profileUser.bio ??
-                                        'what best describes you  ...',
-                                  ),
-                                )
-                                : Text(
-                                  profileUser.bio ?? '',
-                                  overflow: TextOverflow.fade,
-                                ),
-                      ),
-                      SizedBox(height: 20),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          _InfoChip(label: 'Music', icon: Icons.music_note),
-                          _InfoChip(
-                            label: 'Health',
-                            icon: Icons.health_and_safety,
-                          ),
-                          _InfoChip(
-                            label: 'Tech Enthusiast',
-                            icon: Icons.computer,
-                          ),
-                          _InfoChip(label: 'Movies Fan', icon: Icons.movie),
-                          _InfoChip(
-                            label: 'Football',
-                            icon: Icons.sports_football,
-                          ),
-                          _InfoChip(
-                            label: 'Photography',
-                            icon: Icons.camera_alt,
-                          ),
-                          _InfoChip(label: 'Sport Fan', icon: Icons.sports),
-                          _InfoChip(
-                            label: 'Travel',
-                            icon: Icons.travel_explore,
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          _StatCard(count: '120', label: 'Following'),
-                          _StatCard(count: '542', label: 'Followers'),
-                          _StatCard(count: '1455', label: 'Likes'),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      TabBar(
-                        controller: tabBarController,
-                        tabs: [Tab(text: 'Posts'), Tab(text: 'Collections')],
-                      ),
-                      SizedBox(height: 20),
-                      SizedBox(
-                        height: 500,
-                        child: TabBarView(
-                          controller: tabBarController,
-                          children: [
-                            Center(child: Text('Posts')),
-                            Center(child: Text('Collections')),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        } else if (state is ProfileLoading) {
-          return Scaffold(body: Center(child: CircularProgressIndicator()));
-        } else {
-          return Scaffold(
-            body: Center(child: Text((state as ProfileError).error)),
-          );
-        }
-      },
     );
   }
 }

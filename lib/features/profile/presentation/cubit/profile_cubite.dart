@@ -37,8 +37,32 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   Future<void> toggleFollowUser(String myUid, String uid) async {
     try {
-      await profileRepo.toggleFollowUser(myUid, uid);
+      final currentState = state;
+      if (currentState is ProfileLoaded) {
+        final originalUser = currentState.profileUser;
+        final isFollowing = originalUser.followers.contains(myUid);
+
+        // Optimistically update the UI
+        final List<String> newFollowers = List.from(originalUser.followers);
+        if (isFollowing) {
+          newFollowers.remove(myUid);
+        } else {
+          newFollowers.add(myUid);
+        }
+        final updatedUser = originalUser.copyWith(followers: newFollowers);
+        emit(ProfileLoaded(updatedUser));
+
+        // Perform the actual repository call
+        await profileRepo.toggleFollowUser(myUid, uid);
+      }
     } catch (e) {
+      // If something goes wrong, revert to the original state
+      final currentState = state;
+      if (currentState is ProfileLoaded) {
+        getProfileUser(currentState.profileUser.uid);
+        emit(ProfileLoaded(currentState.profileUser));
+      }
+      await profileRepo.toggleFollowUser(myUid, uid);
       emit(ProfileError(e.toString()));
     }
   }

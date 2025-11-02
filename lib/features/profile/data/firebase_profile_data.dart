@@ -56,28 +56,43 @@ class FirebaseProfileRepo implements ProfileRepo {
       if (myUserData != null && userData != null) {
         final myUser = ProfileUser.fromJson(myUserData);
         final user = ProfileUser.fromJson(userData);
+        // Use atomic server-side operations to avoid race conditions.
         if (myUser.following.contains(uid)) {
-          myUser.following.remove(uid);
-          user.followers.remove(myUid);
-          await firebaseFirestore
-              .collection('users')
-              .doc(myUid)
-              .update(myUser.toJson());
-          await firebaseFirestore
-              .collection('users')
-              .doc(uid)
-              .update(user.toJson());
+          // myUser.following.remove(uid);
+          // user.followers.remove(myUid);
+          // await firebaseFirestore
+          //     .collection('users')
+          //     .doc(myUid)
+          //     .update(myUser.toJson());
+          // await firebaseFirestore
+          //     .collection('users')
+          //     .doc(uid)
+          //     .update(user.toJson());
+          // Unfollow
+          await firebaseFirestore.collection('users').doc(myUid).update({
+            'following': FieldValue.arrayRemove([uid]),
+          });
+          await firebaseFirestore.collection('users').doc(uid).update({
+            'followers': FieldValue.arrayRemove([myUid]),
+          });
         } else {
-          myUser.following.add(uid);
-          await firebaseFirestore
-              .collection('users')
-              .doc(myUid)
-              .update(myUser.toJson());
-          user.followers.add(myUid);
-          await firebaseFirestore
-              .collection('users')
-              .doc(uid)
-              .update(user.toJson());
+          // myUser.following.add(uid);
+          // await firebaseFirestore
+          //     .collection('users')
+          //     .doc(myUid)
+          //     .update(myUser.toJson());
+          // user.followers.add(myUid);
+          // await firebaseFirestore
+          //     .collection('users')
+          //     .doc(uid)
+          //     .update(user.toJson());
+          // Follow
+          await firebaseFirestore.collection('users').doc(myUid).update({
+            'following': FieldValue.arrayUnion([uid]),
+          });
+          await firebaseFirestore.collection('users').doc(uid).update({
+            'followers': FieldValue.arrayUnion([myUid]),
+          });
         }
       } else {
         throw Exception('User not found');

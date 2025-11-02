@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart' as intl;
@@ -14,14 +13,12 @@ class PostCard extends StatefulWidget {
   final Post post;
   final ProfileUser author;
   final VoidCallback? onShare;
-  final VoidCallback? onMenuTap;
 
   const PostCard({
     super.key,
     required this.post,
     required this.author,
     this.onShare,
-    this.onMenuTap,
   });
 
   @override
@@ -201,11 +198,7 @@ class _PostCardState extends State<PostCard>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _PostHeader(
-            author: author,
-            timestamp: post.timestamp,
-            onMenuTap: widget.onMenuTap,
-          ),
+          _PostHeader(author: author, post: post, timestamp: post.timestamp),
           if (post.description.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -305,21 +298,116 @@ class _PostCardState extends State<PostCard>
   }
 }
 
-class _PostHeader extends StatelessWidget {
+class _PostHeader extends StatefulWidget {
   final ProfileUser author;
   final DateTime timestamp;
-  final VoidCallback? onMenuTap;
+  final Post post;
 
   const _PostHeader({
     required this.author,
+    required this.post,
     required this.timestamp,
-    this.onMenuTap,
   });
+
+  @override
+  State<_PostHeader> createState() => _PostHeaderState();
+}
+
+class _PostHeaderState extends State<_PostHeader> {
+  PostCubit get _postCubit => context.read<PostCubit>();
+
+  PopupMenuButton<String> postMenu(BuildContext context) {
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.more_vert),
+      padding: EdgeInsets.zero,
+      offset: Offset(0, 50), // drop down slightly below the icon
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.grey.shade50,
+      itemBuilder:
+          (context) => [
+            PopupMenuItem<String>(
+              value: 'edit',
+              child: Container(
+                width: 160,
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.edit_outlined, color: Colors.blue),
+                    ),
+                    SizedBox(width: 12),
+                    Text('edit', style: TextStyle(fontSize: 16)),
+                  ],
+                ),
+              ),
+            ),
+            PopupMenuItem<String>(
+              value: 'delete',
+              child: Container(
+                width: 160,
+                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.delete_outline, color: Colors.purple),
+                    ),
+                    SizedBox(width: 12),
+                    Text('delete', style: TextStyle(fontSize: 16)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+      onSelected: (value) {
+        if (value == 'edit') {
+          // Handle edit action
+          _postCubit.createOrUpdatePost(widget.post);
+        } else if (value == 'delete') {
+          // Handle delete action
+          _postCubit.deletePost(widget.post.id);
+        }
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final formattedDate = intl.DateFormat('MMM d • h:mm a').format(timestamp);
+    final formattedDate = intl.DateFormat(
+      'MMM d • h:mm a',
+    ).format(widget.timestamp);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -329,12 +417,12 @@ class _PostHeader extends StatelessWidget {
             radius: 24,
             backgroundColor: theme.colorScheme.surfaceContainerHighest,
             backgroundImage:
-                author.profilePicUrl != null
-                    ? CachedNetworkImageProvider(author.profilePicUrl!)
+                widget.author.profilePicUrl != null
+                    ? CachedNetworkImageProvider(widget.author.profilePicUrl!)
                     : null,
             child:
-                author.profilePicUrl == null
-                    ? Text(author.name.characters.first.toUpperCase())
+                widget.author.profilePicUrl == null
+                    ? Text(widget.author.name.characters.first.toUpperCase())
                     : null,
           ),
           const SizedBox(width: 12),
@@ -343,7 +431,7 @@ class _PostHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  author.name,
+                  widget.author.name,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -357,7 +445,7 @@ class _PostHeader extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: onMenuTap),
+          postMenu(context),
         ],
       ),
     );

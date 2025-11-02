@@ -220,12 +220,12 @@ class _ProfilePicture extends StatelessWidget {
                 children: [
                   ElevatedButton(
                     onPressed: onPick,
-                    child: const Text('Change'),
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
+                    child: const Text('Change'),
                   ),
                   const SizedBox(width: 12),
                   OutlinedButton(
