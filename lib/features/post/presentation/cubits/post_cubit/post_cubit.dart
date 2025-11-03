@@ -22,6 +22,16 @@ class PostCubit extends Cubit<PostState> {
     }
   }
 
+  Future<void> fetchPostByUserId(String userId) async {
+    emit(PostLoading());
+    try {
+      final userPosts = await _postRepo.fetchPostByUserId(userId);
+      emit(PostsLoaded(userPosts));
+    } catch (e) {
+      emit(PostError(e.toString()));
+    }
+  }
+
   Future<void> createOrUpdatePost(Post post, {List<String>? pathImages}) async {
     try {
       emit(PostLoading());

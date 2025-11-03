@@ -38,11 +38,27 @@ class PostRepoImp extends PostRepo {
   Future<List<Post>> fetchPostByUserId(String userId) async {
     try {
       final postSnapShot =
-          await postsCollection.where('userId', isEqualTo: userId).get();
-      final userpostsdocs = postSnapShot.docs;
-      final userposts =
-          userpostsdocs.map((doc) => Post.fromJson(doc.data())).toList();
-      return userposts;
+          await postsCollection
+              .orderBy('timestamp', descending: true)
+              .where('ownerId', isEqualTo: userId)
+              .get();
+      final userPostsDocs = postSnapShot.docs;
+
+      final postsList = <Post>[];
+      for (final doc in userPostsDocs) {
+        final commentsSnapshot =
+            await doc.reference
+                .collection('comments')
+                .orderBy('timestamp', descending: true)
+                .get();
+        final comments =
+            commentsSnapshot.docs.map((commentDoc) {
+              final data = commentDoc.data();
+              return Comment.fromJson(data);
+            }).toList();
+        postsList.add(Post.fromJson(doc.data(), comments: comments));
+      }
+      return postsList;
     } on Exception catch (e) {
       throw Exception('error fetching posts by user id $e');
     }

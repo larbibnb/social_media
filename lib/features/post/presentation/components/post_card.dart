@@ -32,7 +32,7 @@ class _PostCardState extends State<PostCard>
   final TextEditingController _commentController = TextEditingController();
   AuthCubit get _authCubit => context.read<AuthCubit>();
   PostCubit get _postCubit => context.read<PostCubit>();
-  ProfileCubit get _profileCubit => context.read<ProfileCubit>();
+  PostCubit get _profileCubit => context.read<PostCubit>();
   String get _currentUserId => _authCubit.currentUser?.uid ?? 'No user id';
   bool get isLiked => widget.post.likes.contains(_currentUserId);
 
@@ -742,7 +742,7 @@ class _CommentsList extends StatelessWidget {
       itemBuilder: (context, index) {
         final comment = comments[index];
         return BlocProvider.value(
-          value: context.read<ProfileCubit>(),
+          value: context.read<PostCubit>(),
           child: _CommentTile(comment: comment),
         );
       },

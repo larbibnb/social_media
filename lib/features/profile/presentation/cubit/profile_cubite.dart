@@ -6,7 +6,9 @@ import 'package:social_media/features/profile/presentation/cubit/profile_state.d
 
 class ProfileCubit extends Cubit<ProfileState> {
   ProfileRepo profileRepo;
+
   ProfileCubit(this.profileRepo) : super(ProfileInitial());
+
   Future<ProfileUser?> getProfileUser(String uid) async {
     try {
       emit(ProfileLoading());

@@ -1,10 +1,13 @@
 import 'dart:developer';
-import 'dart:ffi';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:social_media/features/post/domain/entity/post.dart';
+import 'package:social_media/features/post/presentation/components/post_card.dart';
+import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
+import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
+import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_state.dart';
 import 'package:social_media/features/profile/presentation/views/edit_profile_view.dart';
@@ -20,13 +23,18 @@ class ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<ProfileView>
     with SingleTickerProviderStateMixin {
   late TabController tabBarController;
-  late final authCubit = context.read<AuthCubit>();
-  late final profileCubit = context.read<ProfileCubit>();
+  late final AuthCubit authCubit;
+  late final ProfileCubit profileCubit;
+  late final PostCubit postCubit;
 
   @override
   void initState() {
     super.initState();
+    authCubit = context.read<AuthCubit>();
+    profileCubit = context.read<ProfileCubit>();
+    postCubit = context.read<PostCubit>();
     profileCubit.getProfileUser(widget.uid);
+    postCubit.fetchPostByUserId(widget.uid);
     tabBarController = TabController(length: 2, vsync: this);
   }
 
@@ -40,12 +48,15 @@ class _ProfileViewState extends State<ProfileView>
   Widget build(BuildContext context) {
     return BlocBuilder<ProfileCubit, ProfileState>(
       builder: (context, state) {
-        if (state is ProfileLoaded) {
+        if (state is ProfileLoading || state is ProfileInitial) {
+          return Scaffold(body: Center(child: CircularProgressIndicator()));
+        } else if (state is ProfileError) {
+          return Scaffold(body: Center(child: Text(state.error)));
+        } else if (state is ProfileLoaded) {
+          final currentUser = authCubit.currentUser;
           final profileUser = state.profileUser;
-          final currentUser = context.read<AuthCubit>().currentUser;
           final isCurrentUser = profileUser.uid == currentUser!.uid;
           bool isFollowing = profileUser.followers.contains(currentUser.uid);
-          log('$isCurrentUser');
           return Scaffold(
             body: SafeArea(
               child: Padding(
@@ -142,35 +153,69 @@ class _ProfileViewState extends State<ProfileView>
                         ],
                       ),
                       SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _StatCard(
-                            count: profileUser.following.length.toString(),
-                            label: 'Following',
-                          ),
-                          _StatCard(
-                            count: profileUser.followers.length.toString(),
-                            label: 'Followers',
-                          ),
-                          const _StatCard(count: '1455', label: 'Likes'),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      TabBar(
-                        controller: tabBarController,
-                        tabs: [Tab(text: 'Posts'), Tab(text: 'Collections')],
-                      ),
-                      SizedBox(height: 20),
-                      SizedBox(
-                        height: 500,
-                        child: TabBarView(
-                          controller: tabBarController,
-                          children: [
-                            Center(child: Text('Posts')),
-                            Center(child: Text('Collections')),
-                          ],
-                        ),
+                      BlocBuilder<PostCubit, PostState>(
+                        builder: (context, postState) {
+                          final profilePosts =
+                              postState
+                                      is PostsLoaded // The logic is now much simpler
+                                  ? postState.posts
+                                  : <Post>[];
+                          return Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _StatCard(
+                                    profileUser: profileUser,
+                                    postsCount: profilePosts.length,
+                                    label: 'Following',
+                                  ),
+                                  _StatCard(
+                                    profileUser: profileUser,
+                                    postsCount: profilePosts.length,
+                                    label: 'Followers',
+                                  ),
+                                  _StatCard(
+                                    profileUser: profileUser,
+                                    postsCount: profilePosts.length,
+                                    label: 'Posts',
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 20),
+                              TabBar(
+                                controller: tabBarController,
+                                tabs: [
+                                  Tab(text: 'Posts'),
+                                  Tab(text: 'Collections'),
+                                ],
+                              ),
+                              SizedBox(height: 20),
+                              SizedBox(
+                                height: 800,
+                                child: TabBarView(
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  controller: tabBarController,
+                                  children: [
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      // Allow the list to scroll within the SingleChildScrollView
+                                      physics: const BouncingScrollPhysics(),
+                                      itemBuilder:
+                                          (context, index) => PostCard(
+                                            author: profileUser,
+                                            post: profilePosts[index],
+                                          ),
+                                      itemCount: profilePosts.length,
+                                    ),
+                                    Center(child: Text('Collections')),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -178,12 +223,8 @@ class _ProfileViewState extends State<ProfileView>
               ),
             ),
           );
-        } else if (state is ProfileLoading) {
-          return Scaffold(body: Center(child: CircularProgressIndicator()));
         } else {
-          return Scaffold(
-            body: Center(child: Text((state as ProfileError).error)),
-          );
+          return Scaffold(body: Center(child: Text('Something went wrong.')));
         }
       },
     );
@@ -193,7 +234,7 @@ class _ProfileViewState extends State<ProfileView>
 // -- Reusable private widgets for a softer/profile UI --
 
 class _ProfileHeader extends StatelessWidget {
-  final dynamic profileUser;
+  final ProfileUser profileUser;
   const _ProfileHeader({required this.profileUser});
 
   @override
@@ -362,9 +403,14 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  final String count;
+  final ProfileUser profileUser;
+  final int postsCount;
   final String label;
-  const _StatCard({required this.count, required this.label});
+  const _StatCard({
+    required this.profileUser,
+    required this.postsCount,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -387,11 +433,18 @@ class _StatCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              count,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            TextButton(
+              onPressed: () {},
+              child: Text(
+                label == 'Following'
+                    ? profileUser.following.length.toString()
+                    : label == 'Followers'
+                    ? profileUser.followers.length.toString()
+                    : postsCount.toString(),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
             const SizedBox(height: 6),
             Text(label, style: Theme.of(context).textTheme.bodySmall),
