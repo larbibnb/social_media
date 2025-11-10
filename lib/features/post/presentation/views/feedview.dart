@@ -78,8 +78,11 @@ class _PostCardWithAuthorState extends State<_PostCardWithAuthor> {
   @override
   void initState() {
     super.initState();
+    // Use emitState: false so fetching the author for a post does not
+    // modify the global ProfileCubit's UI state (prevents profile view reload loops).
     _authorFuture = context.read<ProfileCubit>().getProfileUser(
       widget.post.ownerId,
+      emitState: false,
     );
   }
 

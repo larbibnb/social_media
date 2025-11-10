@@ -611,8 +611,10 @@ class _CommentTileState extends State<_CommentTile> {
   @override
   void initState() {
     super.initState();
+    // One-off fetch for comment owner; do not emit global profile states.
     _userFuture = context.read<ProfileCubit>().getProfileUser(
       widget.comment.ownerId,
+      emitState: false,
     );
   }
 
@@ -795,7 +797,11 @@ class _UserTileState extends State<_UserTile> {
   @override
   void initState() {
     super.initState();
-    _userFuture = context.read<ProfileCubit>().getProfileUser(widget.userId);
+    // One-off fetch for user tile; avoid changing global profile cubit state.
+    _userFuture = context.read<ProfileCubit>().getProfileUser(
+      widget.userId,
+      emitState: false,
+    );
   }
 
   @override

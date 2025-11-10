@@ -29,22 +29,11 @@ Repositories for the database
 
 Cubits for the business logic
  -AuthCubit
+ -StorageCubit
  -PostCubit
- -CommentCubit
- -LikeCubit
  -SearchCubit
- -NotificationCubit
  -ProfileCubit
  -SettingsCubit
- -ChatCubit
- -CallCubit
- -VideoCubit
- -AudioCubit
- -ImageCubit
- -FileCubit
- -LocationCubit
- -CameraCubit
- -GalleryCubit
 Chek AuthState
  -Authenticated ==> HomeScreen
  -UnAuthenticated ==> Authscreen
