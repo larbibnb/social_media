@@ -2,14 +2,14 @@ import 'package:flutter/widgets.dart';
 import 'package:social_media/features/auth/presentation/views/login_view.dart';
 import 'package:social_media/features/auth/presentation/views/register_view.dart';
 
-class Authscreen extends StatefulWidget {
-  const Authscreen({super.key});
+class AuthView extends StatefulWidget {
+  const AuthView({super.key});
 
   @override
-  State<Authscreen> createState() => _AuthscreenState();
+  State<AuthView> createState() => _AuthViewState();
 }
 
-class _AuthscreenState extends State<Authscreen> {
+class _AuthViewState extends State<AuthView> {
   bool showLoginScreen = true;
   void toggleScreens() {
     setState(() {

@@ -68,7 +68,7 @@ class MyApp extends StatelessWidget {
             if (state is Authenticated) {
               return const HomeView();
             } else if (state is UnAuthenticated) {
-              return const Authscreen();
+              return const AuthView();
             } else if (state is AuthLoading) {
               return Scaffold(
                 body: const Center(child: CircularProgressIndicator()),
