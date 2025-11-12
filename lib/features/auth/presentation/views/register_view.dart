@@ -14,25 +14,22 @@ class RegisterView extends StatefulWidget {
 
 class _RegisterViewState extends State<RegisterView> {
   final formKey = GlobalKey<FormState>();
-  final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
   void register() {
     if (formKey.currentState!.validate()) {
-      final name = nameController.text.trim();
       final email = emailController.text.trim();
       final password = passwordController.text.trim();
       final authCubit = context.read<AuthCubit>();
-      authCubit.register(name: name, email: email, pw: password);
+      authCubit.register(email: email, pw: password);
     }
   }
 
   @override
   void dispose() {
     super.dispose();
-    nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
   }
@@ -67,12 +64,6 @@ class _RegisterViewState extends State<RegisterView> {
                       ),
                     ),
                     SizedBox(height: 25),
-                    CustomTextFormField(
-                      controller: nameController,
-                      hintText: 'Name',
-                      obscureText: false,
-                    ),
-                    SizedBox(height: 10),
                     CustomTextFormField(
                       controller: emailController,
                       hintText: 'Email',

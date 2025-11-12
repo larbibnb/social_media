@@ -3,16 +3,20 @@ import 'package:social_media/features/auth/domain/entities/app_user.dart';
 class ProfileUser extends AppUser {
   final List<String> followers;
   final List<String> following;
+  final List<String> interests;
   final String? bio;
   final String? profilePicUrl;
 
   ProfileUser({
     required super.uid,
-    required super.name,
+    required super.displayName,
+    required super.userName,
+    required super.gender,
     required super.email,
     required super.createdAt,
     this.followers = const [],
     this.following = const [],
+    this.interests = const [],
     this.bio,
     this.profilePicUrl =
         'https://sm.ign.com/t/ign_pk/cover/a/avatar-gen/avatar-generations_rpge.600.jpg',
@@ -20,23 +24,29 @@ class ProfileUser extends AppUser {
 
   ProfileUser copyWith({
     String? uid,
-    String? name,
+    String? displayName,
+    String? userName,
+    Gender? gender,
     String? email,
     String? createdAt,
     String? bio,
     String? profilePicUrl,
     List<String>? followers,
     List<String>? following,
+    List<String>? interests,
   }) {
     return ProfileUser(
       uid: uid ?? this.uid,
-      name: name ?? this.name,
+      displayName: displayName ?? this.displayName,
+      userName: userName ?? this.userName,
+      gender: gender ?? this.gender,
       email: email ?? this.email,
       createdAt: createdAt ?? this.createdAt,
       bio: bio ?? this.bio,
       profilePicUrl: profilePicUrl ?? this.profilePicUrl,
       followers: followers ?? this.followers,
       following: following ?? this.following,
+      interests: interests ?? this.interests,
     );
   }
 
@@ -44,7 +54,15 @@ class ProfileUser extends AppUser {
   factory ProfileUser.fromJson(Map<String, dynamic> json) {
     return ProfileUser(
       uid: json['uid'],
-      name: json['name'],
+      displayName: json['displayName'],
+      userName: json['userName'],
+      gender:
+          json['gender'] != null
+              ? Gender.values.firstWhere(
+                (e) => e.name == json['gender'],
+                orElse: () => Gender.male,
+              )
+              : null,
       email: json['email'],
       createdAt: json['createdAt'],
       bio: json['bio'],
@@ -53,6 +71,7 @@ class ProfileUser extends AppUser {
           'https://sm.ign.com/t/ign_pk/cover/a/avatar-gen/avatar-generations_rpge.600.jpg',
       followers: List<String>.from(json['followers'] ?? []),
       following: List<String>.from(json['following'] ?? []),
+      interests: List<String>.from(json['interests'] ?? []),
     );
   }
   //profileUser to json format
@@ -60,13 +79,16 @@ class ProfileUser extends AppUser {
   Map<String, dynamic> toJson() {
     return {
       'uid': uid,
-      'name': name,
+      'displayName': displayName,
+      'userName': userName,
+      'gender': gender?.name,
       'email': email,
       'createdAt': createdAt,
       'bio': bio,
       'profilePicUrl': profilePicUrl,
       'followers': followers,
       'following': following,
+      'interests': interests,
     };
   }
 }

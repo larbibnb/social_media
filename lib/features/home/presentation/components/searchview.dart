@@ -62,7 +62,7 @@ void showSearchSheet(BuildContext context) {
                       itemBuilder: (context, index) {
                         // Access properties using dot notation, not map-like access
                         final user = users[index];
-                        final name = user.name;
+                        final name = user.displayName;
                         final email = user.email;
                         final image = user.profilePicUrl;
                         return GestureDetector(
@@ -82,7 +82,7 @@ void showSearchSheet(BuildContext context) {
                               backgroundImage:
                                   image != null ? NetworkImage(image) : null,
                             ),
-                            title: Text(name),
+                            title: Text(name!),
                             subtitle: Text(email),
                           ),
                         );

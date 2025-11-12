@@ -19,7 +19,7 @@ void main() {
 
   final otherUser = ProfileUser(
     uid: 'other_uid',
-    name: 'Other User',
+    displayName: 'Other User',
     email: 'other@test.com',
     createdAt: DateTime.now().toIso8601String(),
     followers: [],

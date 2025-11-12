@@ -86,8 +86,8 @@ class _ProfileViewState extends State<ProfileView>
                               SnackBar(
                                 content: Text(
                                   isFollowing
-                                      ? 'Unfollowing ${profileUser.name}'
-                                      : 'Following ${profileUser.name}',
+                                      ? 'Unfollowing ${profileUser.displayName}'
+                                      : 'Following ${profileUser.displayName}',
                                 ),
                               ),
                             );
@@ -283,7 +283,8 @@ class _ProfileHeader extends StatelessWidget {
                       color: Colors.grey.shade200,
                       child: Center(
                         child: Text(
-                          profileUser.name.characters.first.toUpperCase(),
+                          profileUser.displayName!.characters.first
+                              .toUpperCase(),
                           style: TextStyle(fontSize: 36),
                         ),
                       ),
@@ -296,7 +297,7 @@ class _ProfileHeader extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  profileUser.name,
+                  profileUser.displayName!,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

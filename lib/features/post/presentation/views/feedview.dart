@@ -115,9 +115,15 @@ class _PostCardWithAuthorState extends State<_PostCardWithAuthor> {
             snapshot.data ??
             ProfileUser(
               uid: widget.post.ownerId,
-              name: 'Unknown user',
+              displayName: 'Unknown user',
               email: 'unknown@social.media',
+              userName: 'unknown',
+              gender: null,
               createdAt: '',
+              profilePicUrl: null,
+              bio: null,
+              followers: [],
+              following: [],
             );
 
         return PostCard(post: widget.post, author: author);

@@ -1,12 +1,16 @@
 class AppUser {
   final String uid;
-  final String name;
+  final String? displayName;
+  final String? userName;
+  final Gender? gender;
   final String email;
   final String? createdAt;
 
   AppUser({
     required this.uid,
-    required this.name,
+    this.displayName,
+    this.userName,
+    this.gender,
     required this.email,
     this.createdAt,
   });
@@ -15,9 +19,11 @@ class AppUser {
   Map<String, dynamic> toJson() {
     return {
       'uid': uid,
-      'name': name,
+      'displayName': displayName,
+      'userName': userName,
+      'gender': gender?.name,
       'email': email,
-      'createdAt': createdAt
+      'createdAt': createdAt,
     };
   }
 
@@ -25,9 +31,19 @@ class AppUser {
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
       uid: json['uid'],
-      name: json['name'],
+      displayName: json['displayName'],
+      userName: json['userName'],
+      gender:
+          json['gender'] != null
+              ? Gender.values.firstWhere(
+                (e) => e.name == json['gender'],
+                orElse: () => Gender.male,
+              )
+              : null,
       email: json['email'],
       createdAt: json['createdAt'],
     );
   }
 }
+
+enum Gender { male, female }

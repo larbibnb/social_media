@@ -73,7 +73,7 @@ class _PostCardState extends State<PostCard>
         _postCubit.commentPost(
           widget.post.id,
           currentUser.uid,
-          currentUser.name,
+          currentUser.displayName!,
           comment,
         );
         // The UI will update automatically when the PostCubit emits a new state.
@@ -422,7 +422,9 @@ class _PostHeaderState extends State<_PostHeader> {
                     : null,
             child:
                 widget.author.profilePicUrl == null
-                    ? Text(widget.author.name.characters.first.toUpperCase())
+                    ? Text(
+                      widget.author.displayName!.characters.first.toUpperCase(),
+                    )
                     : null,
           ),
           const SizedBox(width: 12),
@@ -431,7 +433,7 @@ class _PostHeaderState extends State<_PostHeader> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.author.name,
+                  widget.author.displayName ?? 'Unknown User',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -628,7 +630,7 @@ class _CommentTileState extends State<_CommentTile> {
         }
         final user = snapshot.data;
         return _CommentContent(
-          username: user?.name ?? 'Unknown User',
+          username: user?.displayName ?? 'Unknown User',
           profilePicUrl: user?.profilePicUrl,
           description: widget.comment.description,
           timeStamp: widget.comment.timestamp,
@@ -838,10 +840,12 @@ class _UserTileState extends State<_UserTile> {
                     : null,
             child:
                 profileUser.profilePicUrl == null
-                    ? Text(profileUser.name.characters.first.toUpperCase())
+                    ? Text(
+                      profileUser.displayName!.characters.first.toUpperCase(),
+                    )
                     : null,
           ),
-          title: Text(profileUser.name),
+          title: Text(profileUser.displayName!),
           subtitle: Text(profileUser.email),
         );
       },

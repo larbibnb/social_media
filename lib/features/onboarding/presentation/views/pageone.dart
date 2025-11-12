@@ -1,13 +1,24 @@
+import 'dart:developer';
+
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 
-class NamePage extends StatefulWidget {
-  const NamePage({super.key});
+class ProfileCreating extends StatefulWidget {
+  final ValueChanged<String> onDisplayNameChanged;
+  final ValueChanged<String> onUserNameChanged;
+  final ValueChanged<String> onBioChanged;
 
+  const ProfileCreating({
+    super.key,
+    required this.onDisplayNameChanged,
+    required this.onUserNameChanged,
+    required this.onBioChanged,
+  });
   @override
-  State<NamePage> createState() => _NamePageState();
+  State<ProfileCreating> createState() => _ProfileCreatingState();
 }
 
-class _NamePageState extends State<NamePage> {
+class _ProfileCreatingState extends State<ProfileCreating> {
   final TextEditingController displayNameController = TextEditingController();
   final TextEditingController userNameController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
@@ -24,14 +35,11 @@ class _NamePageState extends State<NamePage> {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey.shade900,
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Column(
         children: [
           TextField(
             controller: displayNameController,
+            onChanged: widget.onDisplayNameChanged,
             decoration: InputDecoration(
               border: OutlineInputBorder(),
               labelText: 'Display Name',
@@ -40,7 +48,8 @@ class _NamePageState extends State<NamePage> {
           ),
           SizedBox(height: 10),
           TextField(
-            controller: displayNameController,
+            controller: userNameController,
+            onChanged: widget.onUserNameChanged,
             decoration: InputDecoration(
               border: OutlineInputBorder(),
               labelText: 'User Name',
@@ -48,10 +57,27 @@ class _NamePageState extends State<NamePage> {
             ),
           ),
           SizedBox(height: 10),
+          Text('Where are you from?'),
+          SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () {
+              showCountryPicker(
+                context: context,
+                showPhoneCode:
+                    true, // optional. Shows phone code before the country name.
+                onSelect: (Country country) {
+                  log('Select country: ${country.displayName}');
+                },
+              );
+            },
+            child: Text('Select Country'),
+          ),
+          SizedBox(height: 10),
           Text('Bio'),
           SizedBox(height: 10),
           TextField(
-            controller: displayNameController,
+            controller: bioController,
+            onChanged: widget.onBioChanged,
             decoration: InputDecoration(
               border: OutlineInputBorder(),
               labelText: 'Bio',

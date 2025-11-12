@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:social_media/features/auth/data/firebase_auth_repo.dart';
 import 'package:social_media/features/auth/domain/repositories/auth_repo.dart';
 import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:social_media/features/auth/presentation/cubits/auth_states.dart';
 import 'package:social_media/features/auth/presentation/views/authview.dart';
 import 'package:social_media/features/home/presentation/views/home_view.dart';
+import 'package:social_media/features/onboarding/presentation/views/onboarding.dart';
 import 'package:social_media/features/post/data/post_repo_imp.dart';
 import 'package:social_media/features/post/domain/repo/post_repo.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
@@ -46,6 +48,7 @@ class MyApp extends StatelessWidget {
   PostRepo postRepo = PostRepoImp();
   StorageRepo storageRepo = FirebaseStorageRepo();
   SearchRepo searchRepo = SearchRepoImpl(firestore: FirebaseFirestore.instance);
+  final sharedPreferences = SharedPreferences.getInstance();
 
   MyApp({super.key});
 
@@ -66,6 +69,16 @@ class MyApp extends StatelessWidget {
           builder: (context, state) {
             print(state);
             if (state is Authenticated) {
+              sharedPreferences.then(
+                (value) => value.setBool("shouldShowOnboarding", true),
+              );
+              bool shouldShowOnboarding = true;
+              sharedPreferences.then((value) {
+                shouldShowOnboarding = value.getBool("shouldShowOnboarding")!;
+              });
+              if (shouldShowOnboarding == true) {
+                return Onboarding(userId: state.appUser.uid);
+              }
               return const HomeView();
             } else if (state is UnAuthenticated) {
               return const AuthView();

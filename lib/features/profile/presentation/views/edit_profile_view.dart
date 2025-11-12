@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_state.dart';
@@ -41,9 +40,12 @@ class _EditProfileViewState extends State<EditProfileView> {
   }
 
   void updateProfile(ProfileUser profileUser) {
-    final name = nameController.text.trim();
+    final displayName = nameController.text.trim();
     final bio = bioController.text.trim();
-    final updatedprofileUser = profileUser.copyWith(name: name, bio: bio);
+    final updatedprofileUser = profileUser.copyWith(
+      displayName: displayName,
+      bio: bio,
+    );
     context.read<ProfileCubit>().updateProfileUser(
       updatedprofileUser,
       pickedFile,
@@ -53,7 +55,7 @@ class _EditProfileViewState extends State<EditProfileView> {
   @override
   void initState() {
     super.initState();
-    nameController.text = widget.user.name;
+    nameController.text = widget.user.displayName ?? '';
     bioController.text = widget.user.bio ?? '';
   }
 

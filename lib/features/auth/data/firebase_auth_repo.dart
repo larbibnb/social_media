@@ -16,8 +16,17 @@ class FirebaseAuthRepo implements AuthRepo {
         final userDoc =
             await firebaseFirestore.collection('users').doc(user.uid).get();
         final userData = userDoc.data();
-        final name = userData?['name'] ?? '';
-        return AppUser(email: user.email!, uid: user.uid, name: name);
+        final displayName = userData?['displayName'];
+        final userName = userData?['userName'];
+        final gender = userData?['gender'];
+
+        return AppUser(
+          email: user.email!,
+          uid: user.uid,
+          displayName: displayName,
+          userName: userName,
+          gender: gender != null ? Gender.values.byName(gender) : null,
+        );
       } else {
         return null;
       }
@@ -29,73 +38,74 @@ class FirebaseAuthRepo implements AuthRepo {
   }
 
   @override
-Future<AppUser?> registerWithEmailAndPassword({
-  required String name,
-  required String email,
-  required String password,
-}) async {
-  try {
-    UserCredential userCredential = await firebaseAuth
-        .createUserWithEmailAndPassword(email: email, password: password);
+  Future<AppUser?> registerWithEmailAndPassword({
+    String? name,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      UserCredential userCredential = await firebaseAuth
+          .createUserWithEmailAndPassword(email: email, password: password);
 
-    // store only the yyyy-MM-dd string
-    final String createdAt =
-        DateTime.now().toIso8601String().split('T').first;
+      // store only the yyyy-MM-dd string
+      final String createdAt =
+          DateTime.now().toIso8601String().split('T').first;
 
-    AppUser user = AppUser(
-      uid: userCredential.user!.uid,
-      email: email,
-      name: name,
-      createdAt: createdAt,
-    );
+      AppUser user = AppUser(
+        uid: userCredential.user!.uid,
+        email: email,
+        createdAt: createdAt,
+      );
 
-    await firebaseFirestore
-        .collection('users')
-        .doc(user.uid)
-        .set({
-          'uid': user.uid,
-          'email': user.email,
-          'name': user.name,
-          'createdAt': createdAt, // stored as string
-        });
+      await firebaseFirestore.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'email': user.email,
+        'createdAt': createdAt, // stored as string
+      });
 
-    return user;
-  } catch (e) {
-    throw Exception('Register failed: ${e.toString()}');
+      return user;
+    } catch (e) {
+      throw Exception('Register failed: ${e.toString()}');
+    }
   }
-}
 
-@override
-Future<AppUser?> loginWithEmailAndPassword(
-  String email,
-  String password,
-) async {
-  try {
-    UserCredential userCredential = await firebaseAuth
-        .signInWithEmailAndPassword(email: email, password: password);
+  @override
+  Future<AppUser?> loginWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      UserCredential userCredential = await firebaseAuth
+          .signInWithEmailAndPassword(email: email, password: password);
 
-    final userDoc = await firebaseFirestore
-        .collection('users')
-        .doc(userCredential.user!.uid)
-        .get();
+      final userDoc =
+          await firebaseFirestore
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .get();
 
-    final userData = userDoc.data();
-    if (userData == null) return null;
+      final userData = userDoc.data();
+      if (userData == null) return null;
 
-    final String name = userData['name'] ?? '';
-    final String createdAt = userData['createdAt'] ?? '';
+      final String? displayName = userData['displayName'];
+      final String? userName = userData['userName'];
+      final Gender? gender =
+          userData['gender'] != null
+              ? Gender.values.byName(userData['gender'])
+              : null;
+      final String createdAt = userData['createdAt'] ?? '';
 
-    AppUser user = AppUser(
-      uid: userCredential.user!.uid,
-      email: email,
-      name: name,
-      createdAt: createdAt,
-    );
-    return user;
-  } catch (e) {
-    throw Exception('Login failed: ${e.toString()}');
+      final AppUser user = AppUser(
+        uid: userCredential.user!.uid,
+        displayName: displayName,
+        email: email,
+        createdAt: createdAt,
+      );
+      return user;
+    } catch (e) {
+      throw Exception('Login failed: ${e.toString()}');
+    }
   }
-}
 
   @override
   Future<void> logout() {
