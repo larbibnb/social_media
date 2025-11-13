@@ -2,7 +2,6 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:social_media/features/home/presentation/views/home_view.dart';
 import 'package:social_media/features/onboarding/presentation/views/pageone.dart';
@@ -105,7 +104,6 @@ class _OnboardingState extends State<Onboarding> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Skip button removed - users must complete the form
                     const SizedBox(width: 80),
                     SmoothPageIndicator(controller: _pageController, count: 3),
                     lastPage
@@ -119,50 +117,8 @@ class _OnboardingState extends State<Onboarding> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                             ),
-                            onPressed: () async {
-                              // final step - validate & save
-                              final prefs =
-                                  await SharedPreferences.getInstance();
-                              prefs.setBool('shouldShowOnboarding', false);
-                              // update profile if available in cubit
-                              if (_profileUser != null) {
-                                // Check if _profileUser is not null
-                                try {
-                                  final updatedProfileUser = _profileUser!
-                                      .copyWith(
-                                        displayName: _displayName,
-                                        userName: _userName,
-                                        bio: _bio,
-                                        interests: _interests,
-                                      );
-                                  // Await profile update before navigating
-                                  await profileCubit.updateProfileUser(
-                                    updatedProfileUser,
-                                  );
-                                } catch (e) {
-                                  log('Error updating profile: $e');
-                                }
-                              } else {
-                                log(
-                                  'Error: ProfileUser not loaded, cannot update.',
-                                );
-                                // Optionally show a SnackBar to the user
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Profile data not available for update.',
-                                    ),
-                                  ),
-                                );
-                              }
-                              if (context.mounted) {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const HomeView(),
-                                  ),
-                                );
-                              }
+                            onPressed: () {
+                              onDone();
                             },
                             child: const Padding(
                               padding: EdgeInsets.symmetric(vertical: 10.0),
@@ -203,6 +159,32 @@ class _OnboardingState extends State<Onboarding> {
         ),
       ),
     );
+  }
+
+  void onDone() async {
+    if (_profileUser != null) {
+      // Check if _profileUser is not null
+      try {
+        final updatedProfileUser = _profileUser!.copyWith(
+          displayName: _displayName,
+          userName: _userName,
+          bio: _bio,
+          interests: _interests,
+        );
+        // Await profile update before navigating
+        await profileCubit.updateProfileUser(updatedProfileUser);
+      } catch (e) {
+        log('Error updating profile: $e');
+      }
+    } else {
+      log('Error: ProfileUser not loaded, cannot update.');
+    }
+    if (context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeView()),
+      );
+    }
   }
 
   void _validateAndProceed() {

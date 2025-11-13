@@ -69,14 +69,13 @@ class MyApp extends StatelessWidget {
           builder: (context, state) {
             print(state);
             if (state is Authenticated) {
-              // Read the onboarding flag asynchronously and render the
-              // appropriate initial screen. Use a FutureBuilder so we wait
-              // for SharedPreferences to be ready instead of relying on a
-              // quickly-assigned local variable (which caused a race and
-              // always returned the onboarding screen).
+              // Check if the user has completed onboarding by verifying if their
+              // profile info is filled (displayName and userName are not empty).
+              // This way we don't need an extra flag in the database.
               return FutureBuilder<bool>(
-                future: sharedPreferences.then(
-                  (prefs) => prefs.getBool('shouldShowOnboarding') ?? true,
+                future: _checkOnboardingRequired(
+                  state.appUser.uid,
+                  context.read<ProfileCubit>(),
                 ),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
@@ -84,8 +83,8 @@ class MyApp extends StatelessWidget {
                       body: Center(child: CircularProgressIndicator()),
                     );
                   }
-                  final shouldShowOnboarding = snapshot.data!;
-                  if (shouldShowOnboarding) {
+                  final needsOnboarding = snapshot.data!;
+                  if (needsOnboarding) {
                     return Onboarding(userId: state.appUser.uid);
                   }
                   return const HomeView();
@@ -111,5 +110,32 @@ class MyApp extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Check if the user needs to complete onboarding.
+  /// Returns true if onboarding is needed (displayName or userName is empty),
+  /// false if the user has already filled in their profile.
+  Future<bool> _checkOnboardingRequired(
+    String userId,
+    ProfileCubit profileCubit,
+  ) async {
+    try {
+      final profileUser = await profileCubit.getProfileUser(
+        userId,
+        emitState: false,
+      );
+      if (profileUser == null) {
+        // Profile not found, show onboarding
+        return true;
+      }
+      // If displayName or userName is empty, show onboarding
+      final needsOnboarding =
+          (profileUser.displayName?.isEmpty ?? true) ||
+          (profileUser.userName?.isEmpty ?? true);
+      return needsOnboarding;
+    } catch (e) {
+      // On error, show onboarding to be safe
+      return true;
+    }
   }
 }
