@@ -6,12 +6,16 @@ class ProfileRevising extends StatelessWidget {
     super.key,
     required this.displayName,
     required this.userName,
+    required this.sex,
     required this.bio,
+    required this.location,
     required this.interests,
   });
   final String displayName;
   final String userName;
+  final String sex;
   final String bio;
+  final String location;
   final List<String> interests;
 
   @override
@@ -58,7 +62,7 @@ class ProfileRevising extends StatelessWidget {
                     ReviewTile(
                       label: 'User Name',
                       value: userName,
-                      description: 'This is how others will see you.',
+                      description: 'This is your unique identifier.',
                     ),
                     const SizedBox(height: 16),
                     ReviewTile(
@@ -68,11 +72,22 @@ class ProfileRevising extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     ReviewTile(
-                      label: 'Bio',
-                      value: bio,
-                      description: 'This is how others will see you.',
+                      label: 'Sex',
+                      value: sex,
+                      description: 'Your gender identity.',
                     ),
                     const SizedBox(height: 16),
+                    ReviewTile(
+                      label: 'Bio',
+                      value: bio,
+                      description: 'A short description about yourself.',
+                    ),
+                    const SizedBox(height: 16),
+                    ReviewTile(
+                      label: 'Location',
+                      value: location,
+                      description: 'Where you are from.',
+                    ),
                     ReviewTile(
                       label: 'Interests',
                       value: interests.join(', '),

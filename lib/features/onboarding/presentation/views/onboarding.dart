@@ -28,6 +28,8 @@ class _OnboardingState extends State<Onboarding> {
   String _displayName = '';
   String _userName = '';
   String _bio = '';
+  String _sex = '';
+  String _location = '';
   List<String> _interests = [];
   ProfileUser? _profileUser; // Changed from late final to nullable
   @override
@@ -50,11 +52,11 @@ class _OnboardingState extends State<Onboarding> {
         if (state is ProfileLoaded) {
           setState(() {
             _profileUser = state.profileUser;
-            // Optionally pre-fill fields if an existing profile is loaded
-            // _displayName = state.profileUser.displayName ?? '';
-            // _userName = state.profileUser.userName ?? '';
-            // _bio = state.profileUser.bio ?? '';
-            // _interests = state.profileUser.interests ?? [];
+            _displayName = state.profileUser.displayName ?? '';
+            _userName = state.profileUser.userName ?? '';
+            _bio = state.profileUser.bio ?? '';
+            _interests = state.profileUser.interests;
+            _location = state.profileUser.location ?? '';
           });
         } else if (state is ProfileError) {
           // Handle error, e.g., show a SnackBar
@@ -82,7 +84,9 @@ class _OnboardingState extends State<Onboarding> {
                     onDisplayNameChanged:
                         (val) => setState(() => _displayName = val),
                     onUserNameChanged: (val) => setState(() => _userName = val),
+                    onSexChanged: (val) => setState(() => _sex = val),
                     onBioChanged: (val) => setState(() => _bio = val),
+                    onLocationChanged: (val) => setState(() => _location = val),
                   ),
                   InterestsPicking(
                     onInterestsChanged: (interests) {
@@ -92,7 +96,9 @@ class _OnboardingState extends State<Onboarding> {
                   ProfileRevising(
                     displayName: _displayName,
                     userName: _userName,
+                    sex: _sex,
                     bio: _bio,
+                    location: _location,
                     interests: _interests,
                   ),
                 ],

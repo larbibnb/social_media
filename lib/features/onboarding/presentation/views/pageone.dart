@@ -6,13 +6,17 @@ import 'package:flutter/material.dart';
 class ProfileCreating extends StatefulWidget {
   final ValueChanged<String> onDisplayNameChanged;
   final ValueChanged<String> onUserNameChanged;
+  final ValueChanged<String> onSexChanged;
   final ValueChanged<String> onBioChanged;
+  final ValueChanged<String> onLocationChanged;
 
   const ProfileCreating({
     super.key,
     required this.onDisplayNameChanged,
     required this.onUserNameChanged,
+    required this.onSexChanged,
     required this.onBioChanged,
+    required this.onLocationChanged,
   });
   @override
   State<ProfileCreating> createState() => _ProfileCreatingState();
@@ -22,12 +26,14 @@ class _ProfileCreatingState extends State<ProfileCreating> {
   final TextEditingController displayNameController = TextEditingController();
   final TextEditingController userNameController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
 
   @override
   void dispose() {
     displayNameController.dispose();
     userNameController.dispose();
     bioController.dispose();
+    locationController.dispose();
     super.dispose();
   }
 
@@ -127,6 +133,44 @@ class _ProfileCreatingState extends State<ProfileCreating> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
+                      'Whats your sex?',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Select your sex',
+                        ),
+                        value: null,
+                        items: const [
+                          DropdownMenuItem(value: 'male', child: Text('Male')),
+                          DropdownMenuItem(
+                            value: 'female',
+                            child: Text('Female'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            widget.onSexChanged(value!);
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
                       'Where are you from?',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
@@ -136,21 +180,34 @@ class _ProfileCreatingState extends State<ProfileCreating> {
                     const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade100,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onPressed: () {
+                      child: TextField(
+                        onTap: () {
                           showCountryPicker(
                             context: context,
                             showPhoneCode: true,
                             onSelect: (Country country) {
-                              log('Select country: ${country.displayName}');
+                              setState(() {
+                                widget.onLocationChanged(country.name);
+                                locationController.text =
+                                    '${country.flagEmoji} ${country.name}';
+                              });
                             },
                           );
                         },
-                        child: const Text('Select Country'),
+                        controller: locationController,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          hintText:
+                              locationController.text.isNotEmpty
+                                  ? locationController.text
+                                  : 'Select Country',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),

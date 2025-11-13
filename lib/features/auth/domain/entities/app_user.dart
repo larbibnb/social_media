@@ -1,8 +1,11 @@
+enum Gender { male, female }
+
 class AppUser {
   final String uid;
   final String? displayName;
   final String? userName;
   final Gender? gender;
+  final String? location;
   final String email;
   final String? createdAt;
 
@@ -11,6 +14,7 @@ class AppUser {
     this.displayName,
     this.userName,
     this.gender,
+    this.location,
     required this.email,
     this.createdAt,
   });
@@ -22,6 +26,7 @@ class AppUser {
       'displayName': displayName,
       'userName': userName,
       'gender': gender?.name,
+      'location': location,
       'email': email,
       'createdAt': createdAt,
     };
@@ -33,6 +38,7 @@ class AppUser {
       uid: json['uid'],
       displayName: json['displayName'],
       userName: json['userName'],
+      location: json['location'],
       gender:
           json['gender'] != null
               ? Gender.values.firstWhere(
@@ -45,5 +51,3 @@ class AppUser {
     );
   }
 }
-
-enum Gender { male, female }
