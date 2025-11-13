@@ -14,29 +14,30 @@ class ReviewTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+      ),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(label, style: TextStyle(color: Colors.black.withOpacity(0.6))),
+            const SizedBox(height: 8),
             Text(
-              label,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-            ),
-            SizedBox(height: 10),
-            Text(
-              value,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
+              value.isEmpty ? '-' : value,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               description,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              style: TextStyle(color: Colors.black.withOpacity(0.6)),
             ),
           ],
         ),

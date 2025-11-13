@@ -69,17 +69,28 @@ class MyApp extends StatelessWidget {
           builder: (context, state) {
             print(state);
             if (state is Authenticated) {
-              sharedPreferences.then(
-                (value) => value.setBool("shouldShowOnboarding", true),
+              // Read the onboarding flag asynchronously and render the
+              // appropriate initial screen. Use a FutureBuilder so we wait
+              // for SharedPreferences to be ready instead of relying on a
+              // quickly-assigned local variable (which caused a race and
+              // always returned the onboarding screen).
+              return FutureBuilder<bool>(
+                future: sharedPreferences.then(
+                  (prefs) => prefs.getBool('shouldShowOnboarding') ?? true,
+                ),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  final shouldShowOnboarding = snapshot.data!;
+                  if (shouldShowOnboarding) {
+                    return Onboarding(userId: state.appUser.uid);
+                  }
+                  return const HomeView();
+                },
               );
-              bool shouldShowOnboarding = true;
-              sharedPreferences.then((value) {
-                shouldShowOnboarding = value.getBool("shouldShowOnboarding")!;
-              });
-              if (shouldShowOnboarding == true) {
-                return Onboarding(userId: state.appUser.uid);
-              }
-              return const HomeView();
             } else if (state is UnAuthenticated) {
               return const AuthView();
             } else if (state is AuthLoading) {

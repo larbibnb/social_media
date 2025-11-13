@@ -31,10 +31,10 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
   }
 
-  void updateProfileUser(
-    ProfileUser updatedprofileUser,
+  Future<void> updateProfileUser(
+    ProfileUser updatedprofileUser, {
     PlatformFile? pickedFile,
-  ) async {
+  }) async {
     try {
       emit(ProfileLoading());
       await profileRepo.updateProfileUser(updatedprofileUser, pickedFile);

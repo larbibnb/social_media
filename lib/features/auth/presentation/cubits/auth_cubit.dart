@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/auth/domain/entities/app_user.dart';
 import 'package:social_media/features/auth/domain/repositories/auth_repo.dart';
@@ -30,6 +32,7 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       emit(AuthLoading());
       _currentUser = await authRepo.loginWithEmailAndPassword(email, pw);
+      log(_currentUser!.email.toString());
       emit(Authenticated(_currentUser!));
     } catch (e) {
       emit(AuthError(e.toString()));

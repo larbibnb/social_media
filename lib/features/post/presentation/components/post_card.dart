@@ -32,7 +32,7 @@ class _PostCardState extends State<PostCard>
   final TextEditingController _commentController = TextEditingController();
   AuthCubit get _authCubit => context.read<AuthCubit>();
   PostCubit get _postCubit => context.read<PostCubit>();
-  PostCubit get _profileCubit => context.read<PostCubit>();
+  ProfileCubit get _profileCubit => context.read<ProfileCubit>();
   String get _currentUserId => _authCubit.currentUser?.uid ?? 'No user id';
   bool get isLiked => widget.post.likes.contains(_currentUserId);
 

@@ -22,13 +22,25 @@ class PostCubit extends Cubit<PostState> {
     }
   }
 
-  Future<void> fetchPostByUserId(String userId) async {
-    emit(PostLoading());
+  /// Fetch posts for a specific user.
+  ///
+  /// If [emitState] is true (default) the cubit will emit loading/loaded/error
+  /// states and therefore replace the global posts state. When calling from
+  /// profile pages you should set `emitState: false` to fetch posts without
+  /// mutating the global feed (prevents the feed from being replaced by user
+  /// posts).
+  Future<List<Post>> fetchPostByUserId(
+    String userId, {
+    bool emitState = true,
+  }) async {
+    if (emitState) emit(PostLoading());
     try {
       final userPosts = await _postRepo.fetchPostByUserId(userId);
-      emit(PostsLoaded(userPosts));
+      if (emitState) emit(PostsLoaded(userPosts));
+      return userPosts;
     } catch (e) {
-      emit(PostError(e.toString()));
+      if (emitState) emit(PostError(e.toString()));
+      return <Post>[];
     }
   }
 

@@ -48,7 +48,7 @@ class _EditProfileViewState extends State<EditProfileView> {
     );
     context.read<ProfileCubit>().updateProfileUser(
       updatedprofileUser,
-      pickedFile,
+      pickedFile: pickedFile,
     );
   }
 

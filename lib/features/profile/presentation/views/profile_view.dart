@@ -25,6 +25,7 @@ class _ProfileViewState extends State<ProfileView>
   late final AuthCubit authCubit;
   late final ProfileCubit profileCubit;
   late final PostCubit postCubit;
+  List<Post> _profilePosts = [];
 
   @override
   void initState() {
@@ -33,7 +34,12 @@ class _ProfileViewState extends State<ProfileView>
     profileCubit = context.read<ProfileCubit>();
     postCubit = context.read<PostCubit>();
     profileCubit.getProfileUser(widget.uid);
-    postCubit.fetchPostByUserId(widget.uid);
+    // Fetch profile posts without mutating the global PostCubit's state
+    postCubit.fetchPostByUserId(widget.uid, emitState: false).then((posts) {
+      setState(() {
+        _profilePosts = posts;
+      });
+    });
     tabBarController = TabController(length: 2, vsync: this);
   }
 
@@ -154,11 +160,7 @@ class _ProfileViewState extends State<ProfileView>
                       SizedBox(height: 20),
                       BlocBuilder<PostCubit, PostState>(
                         builder: (context, postState) {
-                          final profilePosts =
-                              postState
-                                      is PostsLoaded // The logic is now much simpler
-                                  ? postState.posts
-                                  : <Post>[];
+                          final profilePosts = _profilePosts;
                           return Column(
                             children: [
                               Row(
