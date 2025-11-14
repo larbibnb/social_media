@@ -12,10 +12,6 @@ void showSearchSheet(BuildContext context) {
     searchCubit.searchUsers(query);
   }
 
-  void onSubmitted(String query) {
-    searchCubit.searchUsers(query);
-  }
-
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -44,11 +40,6 @@ void showSearchSheet(BuildContext context) {
               },
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => onSubmitted(searchController.text),
-              child: const Text('Search'),
-            ),
-            const SizedBox(height: 16),
             Expanded(
               child: BlocBuilder<SearchCubit, SearchState>(
                 builder: (context, state) {
@@ -60,7 +51,6 @@ void showSearchSheet(BuildContext context) {
                     return ListView.builder(
                       itemCount: users.length,
                       itemBuilder: (context, index) {
-                        // Access properties using dot notation, not map-like access
                         final user = users[index];
                         final name = user.displayName;
                         final email = user.email;

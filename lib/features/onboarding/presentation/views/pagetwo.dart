@@ -125,69 +125,121 @@ class _InterestsPickingState extends State<InterestsPicking> {
   }
 }
 
-class _InfoChip extends StatelessWidget {
+class _InfoChip extends StatefulWidget {
   final String label;
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+
   const _InfoChip({
     required this.label,
     required this.icon,
     required this.isSelected,
     required this.onTap,
   });
+  @override
+  State<_InfoChip> createState() => _InfoChipState();
+}
+
+class _InfoChipState extends State<_InfoChip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    widget.onTap();
+    _controller.forward().then((_) => _controller.reverse());
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isSelected = widget.isSelected;
+
     return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        decoration: BoxDecoration(
-          border: Border.all(
+      onTap: _handleTap,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
             color:
                 isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.transparent,
-          ),
-          color:
-              isSelected
-                  ? Theme.of(context).colorScheme.primary.withOpacity(0.08)
-                  : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 8,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-
-        height: isSelected ? 60 : 46,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: isSelected ? 20 : 18,
+                    ? theme.colorScheme.primary.withOpacity(0.12)
+                    : theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(
               color:
-                  isSelected
-                      ? Colors.blue.shade900
-                      : Theme.of(context).colorScheme.primary,
+                  isSelected ? theme.colorScheme.primary : Colors.grey.shade300,
+              width: isSelected ? 1.5 : 1,
             ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style:
-                  isSelected
-                      ? Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.blue.shade900,
-                      )
-                      : Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
+            boxShadow:
+                isSelected
+                    ? [
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                    : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedTheme(
+                data: theme.copyWith(
+                  iconTheme: theme.iconTheme.copyWith(
+                    color:
+                        isSelected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurfaceVariant,
+                    size: 20,
+                  ),
+                ),
+                duration: const Duration(milliseconds: 300),
+                child: Icon(widget.icon),
+              ),
+              const SizedBox(width: 8),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 300),
+                style: (isSelected
+                        ? theme.textTheme.bodyLarge
+                        : theme.textTheme.bodyMedium)!
+                    .copyWith(
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      color:
+                          isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                    ),
+                child: Text(widget.label),
+              ),
+            ],
+          ),
         ),
       ),
     );

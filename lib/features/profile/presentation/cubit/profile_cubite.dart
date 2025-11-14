@@ -38,10 +38,9 @@ class ProfileCubit extends Cubit<ProfileState> {
     try {
       emit(ProfileLoading());
       await profileRepo.updateProfileUser(updatedprofileUser, pickedFile);
-      getProfileUser(updatedprofileUser.uid);
-      emit(ProfileLoaded(updatedprofileUser));
+      await getProfileUser(updatedprofileUser.uid);
     } catch (e) {
-      emit(ProfileError(e.toString()));
+      emit(ProfileError('Failed to update profile: ${e.toString()}'));
     }
   }
 
@@ -68,12 +67,9 @@ class ProfileCubit extends Cubit<ProfileState> {
     } catch (e) {
       // If something goes wrong, revert to the original state
       final currentState = state;
-      if (currentState is ProfileLoaded) {
+      if (currentState is ProfileLoaded)
         getProfileUser(currentState.profileUser.uid);
-        emit(ProfileLoaded(currentState.profileUser));
-      }
-      await profileRepo.toggleFollowUser(myUid, uid);
-      emit(ProfileError(e.toString()));
+      emit(ProfileError('Failed to toggle follow: ${e.toString()}'));
     }
   }
 }

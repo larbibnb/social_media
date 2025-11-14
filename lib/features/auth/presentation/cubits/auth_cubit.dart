@@ -36,7 +36,6 @@ class AuthCubit extends Cubit<AuthState> {
       emit(Authenticated(_currentUser!));
     } catch (e) {
       emit(AuthError(e.toString()));
-      emit(UnAuthenticated());
     }
   }
 
@@ -51,7 +50,6 @@ class AuthCubit extends Cubit<AuthState> {
       emit(Authenticated(_currentUser!));
     } catch (e) {
       emit(AuthError(e.toString()));
-      emit(UnAuthenticated());
     }
   }
 
