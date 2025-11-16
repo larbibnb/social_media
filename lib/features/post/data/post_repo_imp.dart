@@ -35,7 +35,46 @@ class PostRepoImp extends PostRepo {
   }
 
   @override
-  Future<List<Post>> fetchPostByUserId(String userId) async {
+  Future<List<Post>> fetchFeedPostsByUserIds(List<String> userIds) async {
+    try {
+      final postSnapShot =
+          await postsCollection
+              .orderBy('timestamp', descending: true)
+              .where('ownerId', whereIn: userIds)
+              .get();
+      final userPostsDocs = postSnapShot.docs;
+
+      final postsList = <Post>[];
+      for (final doc in userPostsDocs) {
+        final commentsSnapshot =
+            await doc.reference
+                .collection('comments')
+                .orderBy('timestamp', descending: true)
+                .get();
+        final comments =
+            commentsSnapshot.docs.map((commentDoc) {
+              final data = commentDoc.data();
+              return Comment.fromJson(data);
+            }).toList();
+        postsList.add(Post.fromJson(doc.data(), comments: comments));
+      }
+      return postsList;
+    } on Exception catch (e) {
+      throw Exception('error fetching posts $e');
+    }
+  }
+
+  @override
+  Future<void> deletePost(String postId) async {
+    try {
+      await postsCollection.doc(postId).delete();
+    } catch (e) {
+      throw Exception('error deleting post $e');
+    }
+  }
+
+  @override
+  Future<List<Post>> fetchPostsByUserId(String userId) async {
     try {
       final postSnapShot =
           await postsCollection
@@ -72,11 +111,6 @@ class PostRepoImp extends PostRepo {
     } catch (e) {
       log('$e');
     }
-  }
-
-  @override
-  Future<void> deletePost(String postId) async {
-    await postsCollection.doc(postId).delete();
   }
 
   @override

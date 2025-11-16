@@ -29,13 +29,13 @@ class PostCubit extends Cubit<PostState> {
   /// profile pages you should set `emitState: false` to fetch posts without
   /// mutating the global feed (prevents the feed from being replaced by user
   /// posts).
-  Future<List<Post>> fetchPostByUserId(
+  Future<List<Post>> fetchPostsByUserId(
     String userId, {
     bool emitState = true,
   }) async {
     if (emitState) emit(PostLoading());
     try {
-      final userPosts = await _postRepo.fetchPostByUserId(userId);
+      final userPosts = await _postRepo.fetchPostsByUserId(userId);
       if (emitState) emit(PostsLoaded(userPosts));
       return userPosts;
     } catch (e) {

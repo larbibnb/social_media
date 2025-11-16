@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/presentation/components/post_card.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
-import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 
@@ -15,50 +15,89 @@ class FeedView extends StatefulWidget {
 }
 
 class _FeedViewState extends State<FeedView> {
+  late final PostCubit postCubit;
+  late final ProfileCubit profileCubit;
+  late final AuthCubit authCubit;
+
+  final List<Post> _feedPosts = [];
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
-    context.read<PostCubit>().fetchPosts();
+    postCubit = context.read<PostCubit>();
+    profileCubit = context.read<ProfileCubit>();
+    authCubit = context.read<AuthCubit>();
+    _loadFeed();
+  }
+
+  Future<void> _loadFeed() async {
+    setState(() => _isLoading = true);
+    try {
+      // Get current user's profile and their following list
+      final profileUser = await profileCubit.getProfileUser(
+        authCubit.currentUser!.uid,
+        emitState: false,
+      );
+
+      if (profileUser == null || profileUser.following.isEmpty) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Fetch all posts from followed users in parallel
+      final postsList = await Future.wait(
+        profileUser.following.map(
+          (uid) => postCubit.fetchPostsByUserId(uid, emitState: false),
+        ),
+      );
+
+      // Combine and sort by newest first
+      final combined =
+          postsList.expand((x) => x).toList()
+            ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+      setState(() {
+        _feedPosts.clear();
+        _feedPosts.addAll(combined);
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load feed: ${e.toString()}')),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: BlocBuilder<PostCubit, PostState>(
-        builder: (context, state) {
-          if (state is PostLoading || state is PostInitial) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state is PostError) {
-            return Center(
-              child: Text(state.message, textAlign: TextAlign.center),
-            );
-          }
-          if (state is PostsLoaded) {
-            final posts = state.posts;
-            if (posts.isEmpty) {
-              return const _EmptyPostsIndicator();
-            }
-            return RefreshIndicator(
-              onRefresh: () => context.read<PostCubit>().fetchPosts(),
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _feedPosts.isEmpty
+              ? RefreshIndicator(
+                onRefresh: _loadFeed,
+                child: const _EmptyPostsIndicator(),
+              )
+              : RefreshIndicator(
+                onRefresh: _loadFeed,
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: _feedPosts.length,
+                  itemBuilder: (context, index) {
+                    final post = _feedPosts[index];
+                    return _PostCardWithAuthor(post: post);
+                  },
                 ),
-                physics: const AlwaysScrollableScrollPhysics(),
-                itemCount: posts.length,
-                itemBuilder: (context, index) {
-                  final post = posts[index];
-                  return _PostCardWithAuthor(post: post);
-                },
               ),
-            );
-          }
-
-          return const _EmptyPostsIndicator();
-        },
-      ),
     );
   }
 }

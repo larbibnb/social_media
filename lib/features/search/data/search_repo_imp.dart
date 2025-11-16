@@ -13,8 +13,8 @@ class SearchRepoImpl implements SearchRepo {
     final collectionRef = _firestore.collection('users');
     final querySnapshot =
         await collectionRef
-            .where('name', isGreaterThanOrEqualTo: query)
-            .where('name', isLessThanOrEqualTo: '$query\u{f8ff}')
+            .where('displayName', isGreaterThanOrEqualTo: query)
+            .where('displayName', isLessThanOrEqualTo: '$query\u{f8ff}')
             .get();
 
     final results = <ProfileUser>[];

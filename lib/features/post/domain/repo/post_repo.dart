@@ -2,7 +2,8 @@ import 'package:social_media/features/post/domain/entity/post.dart';
 
 abstract class PostRepo {
   Future<List<Post>> fetchPosts();
-  Future<List<Post>> fetchPostByUserId(String userId);
+  Future<List<Post>> fetchPostsByUserId(String userId);
+  Future<List<Post>> fetchFeedPostsByUserIds(List<String> userIds);
   Future<void> createOrUpdatePost(Post post);
   Future<void> deletePost(String postId);
   Future<void> toggleLikePost(String postId, String userId);
