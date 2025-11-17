@@ -6,7 +6,6 @@ import 'package:social_media/features/post/presentation/components/post_card.dar
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cache_cubit.dart';
-import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 
 class FeedView extends StatefulWidget {
   const FeedView({super.key});
@@ -17,27 +16,24 @@ class FeedView extends StatefulWidget {
 
 class _FeedViewState extends State<FeedView> {
   late final PostCubit postCubit;
-  late final ProfileCubit profileCubit;
   late final AuthCubit authCubit;
+  late final ProfileCacheCubit cacheCubit;
   List<String> _following = [];
 
   // final List<Post> _feedPosts = [];
-  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     postCubit = context.read<PostCubit>();
-    profileCubit = context.read<ProfileCubit>();
     authCubit = context.read<AuthCubit>();
-    profileCubit
-        .getProfileUser(authCubit.currentUser!.uid, emitState: false)
+    cacheCubit = context.read<ProfileCacheCubit>();
+    cacheCubit
+        .load(authCubit.currentUser!.uid)
         .then((user) {
-          if (user != null) {
-            _following = user.following;
-            if (_following.isNotEmpty) {
-              postCubit.fetchFeedPostsByUserIds(_following);
-            }
+          _following = user.following;
+          if (_following.isNotEmpty) {
+            postCubit.fetchFeedPostsByUserIds(_following);
           }
         })
         .catchError((e) {
@@ -54,28 +50,22 @@ class _FeedViewState extends State<FeedView> {
             final posts = state.posts;
             if (posts.isEmpty) {
               return RefreshIndicator(
-                onRefresh:
-                    () => profileCubit
-                        .getProfileUser(
-                          authCubit.currentUser!.uid,
-                          emitState: false,
-                        )
-                        .then((user) {
-                          postCubit.fetchFeedPostsByUserIds(user!.following);
-                        }),
+                onRefresh: () async {
+                  final user = await cacheCubit.load(
+                    authCubit.currentUser!.uid,
+                  );
+                  await postCubit.fetchFeedPostsByUserIds(user.following);
+                },
                 child: const _EmptyPostsIndicator(),
               );
             } else {
               return RefreshIndicator(
-                onRefresh:
-                    () => profileCubit
-                        .getProfileUser(
-                          authCubit.currentUser!.uid,
-                          emitState: false,
-                        )
-                        .then((user) {
-                          postCubit.fetchFeedPostsByUserIds(user!.following);
-                        }),
+                onRefresh: () async {
+                  final user = await cacheCubit.load(
+                    authCubit.currentUser!.uid,
+                  );
+                  await postCubit.fetchFeedPostsByUserIds(user.following);
+                },
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,

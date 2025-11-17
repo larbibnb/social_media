@@ -132,28 +132,11 @@ class _ProfileViewState extends State<ProfileView>
                         spacing: 10,
                         runSpacing: 10,
                         children: [
-                          _InfoChip(label: 'Music', icon: Icons.music_note),
-                          _InfoChip(
-                            label: 'Health',
-                            icon: Icons.health_and_safety,
-                          ),
-                          _InfoChip(
-                            label: 'Tech Enthusiast',
-                            icon: Icons.computer,
-                          ),
-                          _InfoChip(label: 'Movies Fan', icon: Icons.movie),
-                          _InfoChip(
-                            label: 'Football',
-                            icon: Icons.sports_football,
-                          ),
-                          _InfoChip(
-                            label: 'Photography',
-                            icon: Icons.camera_alt,
-                          ),
-                          _InfoChip(label: 'Sport Fan', icon: Icons.sports),
-                          _InfoChip(
-                            label: 'Travel',
-                            icon: Icons.travel_explore,
+                          ...profileUser.interests.map(
+                            (interest) => _InfoChip(
+                              label: interest,
+                              icon: Icons.favorite,
+                            ),
                           ),
                         ],
                       ),

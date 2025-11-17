@@ -35,7 +35,7 @@ class _OnboardingState extends State<Onboarding> {
   @override
   void initState() {
     profileCubit = context.read<ProfileCubit>();
-    profileCubit.getProfileUser(widget.userId, emitState: true);
+    profileCubit.getProfileUser(widget.userId);
     super.initState();
   }
 

@@ -77,7 +77,7 @@ class MyApp extends StatelessWidget {
               return FutureBuilder<bool>(
                 future: _checkOnboardingRequired(
                   state.appUser.uid,
-                  context.read<ProfileCubit>(),
+                  context.read<ProfileCacheCubit>(),
                 ),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
@@ -114,29 +114,19 @@ class MyApp extends StatelessWidget {
     );
   }
 
-  /// Check if the user needs to complete onboarding.
-  /// Returns true if onboarding is needed (displayName or userName is empty),
-  /// false if the user has already filled in their profile.
   Future<bool> _checkOnboardingRequired(
     String userId,
-    ProfileCubit profileCubit,
+    ProfileCacheCubit cacheCubit,
   ) async {
     try {
-      final profileUser = await profileCubit.getProfileUser(
-        userId,
-        emitState: false,
-      );
-      if (profileUser == null) {
-        // Profile not found, show onboarding
-        return true;
-      }
+      final profileUser = await cacheCubit.load(userId);
       // If displayName or userName is empty, show onboarding
       final needsOnboarding =
           (profileUser.displayName?.isEmpty ?? true) ||
           (profileUser.userName?.isEmpty ?? true);
       return needsOnboarding;
     } catch (e) {
-      // On error, show onboarding to be safe
+      // On error or not found, show onboarding to be safe
       return true;
     }
   }

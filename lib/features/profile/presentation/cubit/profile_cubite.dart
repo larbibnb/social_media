@@ -9,24 +9,24 @@ class ProfileCubit extends Cubit<ProfileState> {
 
   ProfileCubit(this.profileRepo) : super(ProfileInitial());
 
-  /// Fetch a profile user. If [emitState] is true (default) the cubit will
-  /// emit loading/loaded/error states. Set to false when you need a one-off
-  /// lookup (for example when loading post authors) so the global profile
-  /// UI state isn't disturbed.
-  Future<ProfileUser?> getProfileUser(
-    String uid, {
-    bool emitState = true,
-  }) async {
+  /// Fetch a profile user and emit loading/loaded/error states.
+  ///
+  /// This method is intended for full-profile UI flows (Profile page,
+  /// Onboarding) where emitting global profile state is desired. For
+  /// lightweight, feed-side lookups prefer `ProfileCacheCubit` to avoid
+  /// mutating the global profile UI state.
+  Future<ProfileUser?> getProfileUser(String uid) async {
     try {
-      if (emitState) emit(ProfileLoading());
+      emit(ProfileLoading());
       final profileUser = await profileRepo.getProfileUser(uid);
-      if (profileUser != null && emitState) {
+      if (profileUser != null) {
         emit(ProfileLoaded(profileUser));
+      } else {
+        emit(ProfileError('Profile not found for uid: $uid'));
       }
       return profileUser;
     } catch (e) {
-      if (emitState)
-        emit(ProfileError('Cubit Get profile user failed: ${e.toString()}'));
+      emit(ProfileError('Cubit Get profile user failed: ${e.toString()}'));
       return null;
     }
   }
