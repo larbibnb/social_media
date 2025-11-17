@@ -4,6 +4,7 @@ import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/presentation/components/post_card.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
+import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 
@@ -18,8 +19,9 @@ class _FeedViewState extends State<FeedView> {
   late final PostCubit postCubit;
   late final ProfileCubit profileCubit;
   late final AuthCubit authCubit;
+  List<String> _following = [];
 
-  final List<Post> _feedPosts = [];
+  // final List<Post> _feedPosts = [];
   bool _isLoading = false;
 
   @override
@@ -28,76 +30,73 @@ class _FeedViewState extends State<FeedView> {
     postCubit = context.read<PostCubit>();
     profileCubit = context.read<ProfileCubit>();
     authCubit = context.read<AuthCubit>();
-    _loadFeed();
-  }
-
-  Future<void> _loadFeed() async {
-    setState(() => _isLoading = true);
-    try {
-      // Get current user's profile and their following list
-      final profileUser = await profileCubit.getProfileUser(
-        authCubit.currentUser!.uid,
-        emitState: false,
-      );
-
-      if (profileUser == null || profileUser.following.isEmpty) {
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      // Fetch all posts from followed users in parallel
-      final postsList = await Future.wait(
-        profileUser.following.map(
-          (uid) => postCubit.fetchPostsByUserId(uid, emitState: false),
-        ),
-      );
-
-      // Combine and sort by newest first
-      final combined =
-          postsList.expand((x) => x).toList()
-            ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-      setState(() {
-        _feedPosts.clear();
-        _feedPosts.addAll(combined);
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load feed: ${e.toString()}')),
-        );
-        setState(() => _isLoading = false);
-      }
-    }
+    profileCubit
+        .getProfileUser(authCubit.currentUser!.uid, emitState: false)
+        .then((user) {
+          if (user != null) {
+            _following = user.following;
+            if (_following.isNotEmpty) {
+              postCubit.fetchFeedPostsByUserIds(_following);
+            }
+          }
+        })
+        .catchError((e) {
+          // ignore — PostCubit will remain in initial state; optionally show error
+        });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _feedPosts.isEmpty
-              ? RefreshIndicator(
-                onRefresh: _loadFeed,
+      body: BlocBuilder<PostCubit, PostState>(
+        builder: (context, state) {
+          if (state is PostsLoaded) {
+            final posts = state.posts;
+            if (posts.isEmpty) {
+              return RefreshIndicator(
+                onRefresh:
+                    () => profileCubit
+                        .getProfileUser(
+                          authCubit.currentUser!.uid,
+                          emitState: false,
+                        )
+                        .then((user) {
+                          postCubit.fetchFeedPostsByUserIds(user!.following);
+                        }),
                 child: const _EmptyPostsIndicator(),
-              )
-              : RefreshIndicator(
-                onRefresh: _loadFeed,
+              );
+            } else {
+              return RefreshIndicator(
+                onRefresh:
+                    () => profileCubit
+                        .getProfileUser(
+                          authCubit.currentUser!.uid,
+                          emitState: false,
+                        )
+                        .then((user) {
+                          postCubit.fetchFeedPostsByUserIds(user!.following);
+                        }),
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
                   physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: _feedPosts.length,
+                  itemCount: posts.length,
                   itemBuilder: (context, index) {
-                    final post = _feedPosts[index];
+                    final post = posts[index];
                     return _PostCardWithAuthor(post: post);
                   },
                 ),
-              ),
+              );
+            }
+          } else if (state is PostError) {
+            return Center(child: Text(state.message));
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
     );
   }
 }
