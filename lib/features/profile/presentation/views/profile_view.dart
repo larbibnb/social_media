@@ -35,7 +35,7 @@ class _ProfileViewState extends State<ProfileView>
     postCubit = context.read<PostCubit>();
     profileCubit.getProfileUser(widget.uid);
     // Fetch profile posts without mutating the global PostCubit's state
-    postCubit.fetchPostsByUserId(widget.uid, emitState: false).then((posts) {
+    postCubit.fetchPostsByUserId(widget.uid).then((posts) {
       setState(() {
         _profilePosts = posts;
       });

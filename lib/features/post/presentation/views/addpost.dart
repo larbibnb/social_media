@@ -79,6 +79,7 @@ class _AddpostState extends State<Addpost> {
     } else {
       context.read<PostCubit>().createOrUpdatePost(newpost);
     }
+    Navigator.pop(context);
   }
 
   void _appendEmojiToDescription(String emoji, String label) {

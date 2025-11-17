@@ -12,34 +12,14 @@ class PostCubit extends Cubit<PostState> {
   final StorageRepo _storageRepo;
   PostCubit(this._postRepo, this._storageRepo) : super(PostInitial());
 
-  Future<void> fetchPosts() async {
+  Future<List<Post>> fetchPostsByUserId(String userId) async {
     emit(PostLoading());
     try {
-      final posts = await _postRepo.fetchPosts();
-      emit(PostsLoaded(posts));
-    } catch (e) {
-      emit(PostError(e.toString()));
-    }
-  }
-
-  /// Fetch posts for a specific user.
-  ///
-  /// If [emitState] is true (default) the cubit will emit loading/loaded/error
-  /// states and therefore replace the global posts state. When calling from
-  /// profile pages you should set `emitState: false` to fetch posts without
-  /// mutating the global feed (prevents the feed from being replaced by user
-  /// posts).
-  Future<List<Post>> fetchPostsByUserId(
-    String userId, {
-    bool emitState = true,
-  }) async {
-    if (emitState) emit(PostLoading());
-    try {
       final userPosts = await _postRepo.fetchPostsByUserId(userId);
-      if (emitState) emit(PostsLoaded(userPosts));
+      emit(PostsLoaded(userPosts));
       return userPosts;
     } catch (e) {
-      if (emitState) emit(PostError(e.toString()));
+      emit(PostError(e.toString()));
       return <Post>[];
     }
   }
@@ -58,7 +38,6 @@ class PostCubit extends Cubit<PostState> {
 
   Future<void> createOrUpdatePost(Post post, {List<String>? pathImages}) async {
     try {
-      emit(PostLoading());
       final uploadedUrls = <String>[];
       if (pathImages != null && pathImages.isNotEmpty) {
         for (var i = 0; i < pathImages.length; i++) {
@@ -71,7 +50,6 @@ class PostCubit extends Cubit<PostState> {
         log(post.images.toString());
       }
       _postRepo.createOrUpdatePost(post);
-      fetchPosts();
     } catch (e) {
       emit(PostError(e.toString()));
     }
@@ -79,9 +57,7 @@ class PostCubit extends Cubit<PostState> {
 
   Future<void> deletePost(String postId) async {
     try {
-      emit(PostLoading());
       await _postRepo.deletePost(postId);
-      fetchPosts();
     } catch (e) {
       emit(PostError(e.toString()));
     }

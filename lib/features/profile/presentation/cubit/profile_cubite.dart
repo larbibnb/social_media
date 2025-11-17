@@ -67,8 +67,9 @@ class ProfileCubit extends Cubit<ProfileState> {
     } catch (e) {
       // If something goes wrong, revert to the original state
       final currentState = state;
-      if (currentState is ProfileLoaded)
+      if (currentState is ProfileLoaded) {
         getProfileUser(currentState.profileUser.uid);
+      }
       emit(ProfileError('Failed to toggle follow: ${e.toString()}'));
     }
   }
