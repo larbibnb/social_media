@@ -5,7 +5,7 @@ import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/presentation/components/post_card.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
-import 'package:social_media/features/profile/domain/entities/profile_user.dart';
+import 'package:social_media/features/profile/presentation/cubit/profile_cache_cubit.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 
 class FeedView extends StatefulWidget {
@@ -101,72 +101,29 @@ class _FeedViewState extends State<FeedView> {
   }
 }
 
-class _PostCardWithAuthor extends StatefulWidget {
+class _PostCardWithAuthor extends StatelessWidget {
   final Post post;
 
   const _PostCardWithAuthor({required this.post});
 
   @override
-  State<_PostCardWithAuthor> createState() => _PostCardWithAuthorState();
-}
-
-class _PostCardWithAuthorState extends State<_PostCardWithAuthor> {
-  late final Future<ProfileUser?> _authorFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    // Use emitState: false so fetching the author for a post does not
-    // modify the global ProfileCubit's UI state (prevents profile view reload loops).
-    _authorFuture = context.read<ProfileCubit>().getProfileUser(
-      widget.post.ownerId,
-      emitState: false,
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return FutureBuilder<ProfileUser?>(
-      future: _authorFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _PostCardSkeleton();
+    // Read the cached author synchronously
+    final cacheCubit = context.read<ProfileCacheCubit>();
+    final author = cacheCubit.state[post.ownerId];
+
+    // If author is not cached yet, request load (prefetch should have cached this already)
+    if (author == null) {
+      cacheCubit.load(post.ownerId).then((_) {
+        if (context.mounted) {
+          // Trigger parent rebuild
+          (context as Element).markNeedsBuild();
         }
+      });
+      return const _PostCardSkeleton();
+    }
 
-        if (snapshot.hasError) {
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Failed to load author information.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ),
-          );
-        }
-
-        final author =
-            snapshot.data ??
-            ProfileUser(
-              uid: widget.post.ownerId,
-              displayName: 'Unknown user',
-              email: 'unknown@social.media',
-              userName: 'unknown',
-              gender: null,
-              createdAt: '',
-              profilePicUrl: null,
-              bio: null,
-              followers: [],
-              following: [],
-            );
-
-        return PostCard(post: widget.post, author: author);
-      },
-    );
+    return PostCard(post: post, author: author);
   }
 }
 

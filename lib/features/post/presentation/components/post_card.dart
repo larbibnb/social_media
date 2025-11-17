@@ -7,6 +7,7 @@ import 'package:social_media/features/post/domain/entity/comment.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
+import 'package:social_media/features/profile/presentation/cubit/profile_cache_cubit.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 
 class PostCard extends StatefulWidget {
@@ -33,6 +34,7 @@ class _PostCardState extends State<PostCard>
   AuthCubit get _authCubit => context.read<AuthCubit>();
   PostCubit get _postCubit => context.read<PostCubit>();
   ProfileCubit get _profileCubit => context.read<ProfileCubit>();
+  ProfileCacheCubit get _cacheCubit => context.read<ProfileCacheCubit>();
   String get _currentUserId => _authCubit.currentUser?.uid ?? 'No user id';
   bool get isLiked => widget.post.likes.contains(_currentUserId);
 
@@ -131,8 +133,8 @@ class _PostCardState extends State<PostCard>
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final likerId = widget.post.likes[index];
-                    return BlocProvider.value(
-                      value: _profileCubit,
+                    return BlocProvider<ProfileCacheCubit>.value(
+                      value: _cacheCubit,
                       child: _UserTile(userId: likerId),
                     );
                   },
@@ -267,8 +269,8 @@ class _PostCardState extends State<PostCard>
         ...visibleComments.map(
           (comment) => Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            child: BlocProvider.value(
-              value: _profileCubit,
+            child: BlocProvider<ProfileCacheCubit>.value(
+              value: _cacheCubit,
               child: _CommentTile(comment: comment),
             ),
           ),
@@ -608,34 +610,26 @@ class _CommentTile extends StatefulWidget {
 }
 
 class _CommentTileState extends State<_CommentTile> {
-  late final Future<ProfileUser?> _userFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    // One-off fetch for comment owner; do not emit global profile states.
-    _userFuture = context.read<ProfileCubit>().getProfileUser(
-      widget.comment.ownerId,
-      emitState: false,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<ProfileUser?>(
-      future: _userFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _CommentSkeleton();
+    final cacheCubit = context.read<ProfileCacheCubit>();
+    final user = cacheCubit.state[widget.comment.ownerId];
+
+    // If user not in cache, load it and trigger rebuild
+    if (user == null) {
+      cacheCubit.load(widget.comment.ownerId).then((_) {
+        if (context.mounted) {
+          (context as Element).markNeedsBuild();
         }
-        final user = snapshot.data;
-        return _CommentContent(
-          username: user?.displayName ?? 'Unknown User',
-          profilePicUrl: user?.profilePicUrl,
-          description: widget.comment.description,
-          timeStamp: widget.comment.timestamp,
-        );
-      },
+      });
+      return const _CommentSkeleton();
+    }
+
+    return _CommentContent(
+      username: user.displayName ?? 'Unknown User',
+      profilePicUrl: user.profilePicUrl,
+      description: widget.comment.description,
+      timeStamp: widget.comment.timestamp,
     );
   }
 }
@@ -794,61 +788,40 @@ class _UserTile extends StatefulWidget {
 }
 
 class _UserTileState extends State<_UserTile> {
-  late final Future<ProfileUser?> _userFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    // One-off fetch for user tile; avoid changing global profile cubit state.
-    _userFuture = context.read<ProfileCubit>().getProfileUser(
-      widget.userId,
-      emitState: false,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<ProfileUser?>(
-      future: _userFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const ListTile(
-            leading: CircleAvatar(backgroundColor: Colors.grey),
-            title: SizedBox(
-              height: 12,
-              child: DecoratedBox(
-                decoration: BoxDecoration(color: Colors.grey),
-              ),
-            ),
-          );
-        }
+    final cacheCubit = context.read<ProfileCacheCubit>();
+    final profileUser = cacheCubit.state[widget.userId];
 
-        final profileUser = snapshot.data;
-        if (profileUser == null || snapshot.hasError) {
-          return const ListTile(
-            leading: CircleAvatar(child: Icon(Icons.error)),
-            title: Text('Unknown user'),
-            subtitle: Text('Could not load user details'),
-          );
+    // If user not in cache, load it and trigger rebuild
+    if (profileUser == null) {
+      cacheCubit.load(widget.userId).then((_) {
+        if (context.mounted) {
+          (context as Element).markNeedsBuild();
         }
+      });
+      return const ListTile(
+        leading: CircleAvatar(backgroundColor: Colors.grey),
+        title: SizedBox(
+          height: 12,
+          child: DecoratedBox(decoration: BoxDecoration(color: Colors.grey)),
+        ),
+      );
+    }
 
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundImage:
-                profileUser.profilePicUrl != null
-                    ? CachedNetworkImageProvider(profileUser.profilePicUrl!)
-                    : null,
-            child:
-                profileUser.profilePicUrl == null
-                    ? Text(
-                      profileUser.displayName!.characters.first.toUpperCase(),
-                    )
-                    : null,
-          ),
-          title: Text(profileUser.displayName!),
-          subtitle: Text(profileUser.email),
-        );
-      },
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundImage:
+            profileUser.profilePicUrl != null
+                ? CachedNetworkImageProvider(profileUser.profilePicUrl!)
+                : null,
+        child:
+            profileUser.profilePicUrl == null
+                ? Text(profileUser.displayName!.characters.first.toUpperCase())
+                : null,
+      ),
+      title: Text(profileUser.displayName!),
+      subtitle: Text(profileUser.email),
     );
   }
 }
