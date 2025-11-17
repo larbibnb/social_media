@@ -75,7 +75,33 @@ class _FeedViewState extends State<FeedView> {
                   itemCount: posts.length,
                   itemBuilder: (context, index) {
                     final post = posts[index];
-                    return _PostCardWithAuthor(post: post);
+                    return Dismissible(
+                      key: ValueKey(post.id),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (direction) {
+                        postCubit.deletePost(post.id);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Post deleted"),
+                            action: SnackBarAction(
+                              label: "Undo",
+                              onPressed: () {
+                                // Restore the post
+                                posts.insert(index, post);
+                              },
+                            ),
+                            duration: Duration(seconds: 3), // Duration for undo
+                          ),
+                        );
+                      },
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        color: Colors.red,
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      child: _PostCardWithAuthor(post: post),
+                    );
                   },
                 ),
               );

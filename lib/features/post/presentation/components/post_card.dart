@@ -397,8 +397,25 @@ class _PostHeaderState extends State<_PostHeader> {
           // Handle edit action
           _postCubit.createOrUpdatePost(widget.post);
         } else if (value == 'delete') {
-          // Handle delete action
-          _postCubit.deletePost(widget.post.id);
+          // Capture values now so the callback won't access this State's
+          // context later if the widget is disposed.
+          final postToDelete = widget.post;
+          final postCubit = context.read<PostCubit>();
+
+          // Optimistically remove the post and show an Undo snackbar
+          postCubit.optimisticDelete(postToDelete);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Post deleted'),
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Undo',
+                onPressed: () {
+                  postCubit.restorePost(postToDelete);
+                },
+              ),
+            ),
+          );
         }
       },
     );

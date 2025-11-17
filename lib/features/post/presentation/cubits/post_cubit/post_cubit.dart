@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/post/domain/entity/comment.dart';
@@ -10,6 +11,9 @@ import 'package:social_media/features/storage/domain/storage_repo.dart';
 class PostCubit extends Cubit<PostState> {
   final PostRepo _postRepo;
   final StorageRepo _storageRepo;
+  final Map<String, Timer> _pendingDeletions = {};
+  final Map<String, Post> _deletedBackups = {};
+  final Map<String, int> _deletedIndex = {};
   PostCubit(this._postRepo, this._storageRepo) : super(PostInitial());
 
   Future<List<Post>> fetchPostsByUserId(String userId) async {
@@ -61,6 +65,68 @@ class PostCubit extends Cubit<PostState> {
     } catch (e) {
       emit(PostError(e.toString()));
     }
+  }
+
+  /// Optimistically remove a post from the current state and schedule
+  /// a backend deletion after [delay]. Call [restorePost] to cancel
+  /// the pending deletion and reinsert the post into the UI.
+  void optimisticDelete(
+    Post post, {
+    Duration delay = const Duration(seconds: 3),
+  }) {
+    final currentState = state;
+    if (currentState is! PostsLoaded) return;
+
+    final index = currentState.posts.indexWhere((p) => p.id == post.id);
+    if (index == -1) return;
+
+    // Backup the post and its index so we can restore on undo or error
+    _deletedBackups[post.id] = post;
+    _deletedIndex[post.id] = index;
+
+    final updatedPosts = List<Post>.from(currentState.posts)..removeAt(index);
+    emit(PostsLoaded(updatedPosts));
+
+    // Schedule the actual backend deletion after the delay
+    final timer = Timer(delay, () async {
+      try {
+        await _postRepo.deletePost(post.id);
+        // cleanup after successful deletion
+        _deletedBackups.remove(post.id);
+        _deletedIndex.remove(post.id);
+        _pendingDeletions.remove(post.id);
+      } catch (e) {
+        // Revert to previous state and surface error
+        emit(PostsLoaded(currentState.posts));
+        emit(PostError('Failed to delete post: ${e.toString()}'));
+        _deletedBackups.remove(post.id);
+        _deletedIndex.remove(post.id);
+        _pendingDeletions.remove(post.id);
+      }
+    });
+
+    _pendingDeletions[post.id] = timer;
+  }
+
+  /// Cancel a pending deletion and restore the post into the current UI.
+  void restorePost(Post post) {
+    final pending = _pendingDeletions.remove(post.id);
+    pending?.cancel();
+
+    final backup = _deletedBackups.remove(post.id);
+    final index = _deletedIndex.remove(post.id) ?? 0;
+    if (backup == null) return; // nothing to restore
+
+    final currentState = state;
+    if (currentState is! PostsLoaded) {
+      emit(PostsLoaded([backup]));
+      return;
+    }
+
+    final updated = List<Post>.from(currentState.posts);
+    final insertIndex = index.clamp(0, updated.length);
+    updated.insert(insertIndex, backup);
+    emit(PostsLoaded(updated));
   }
 
   Future<void> toggleLikePost(String postId, String userId) async {
