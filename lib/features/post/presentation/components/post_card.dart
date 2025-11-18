@@ -8,7 +8,6 @@ import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cache_cubit.dart';
-import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 
 class PostCard extends StatefulWidget {
   final Post post;
@@ -33,7 +32,6 @@ class _PostCardState extends State<PostCard>
   final TextEditingController _commentController = TextEditingController();
   AuthCubit get _authCubit => context.read<AuthCubit>();
   PostCubit get _postCubit => context.read<PostCubit>();
-  ProfileCubit get _profileCubit => context.read<ProfileCubit>();
   ProfileCacheCubit get _cacheCubit => context.read<ProfileCacheCubit>();
   String get _currentUserId => _authCubit.currentUser?.uid ?? 'No user id';
   bool get isLiked => widget.post.likes.contains(_currentUserId);

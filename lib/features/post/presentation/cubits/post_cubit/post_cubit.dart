@@ -59,17 +59,6 @@ class PostCubit extends Cubit<PostState> {
     }
   }
 
-  Future<void> deletePost(String postId) async {
-    try {
-      await _postRepo.deletePost(postId);
-    } catch (e) {
-      emit(PostError(e.toString()));
-    }
-  }
-
-  /// Optimistically remove a post from the current state and schedule
-  /// a backend deletion after [delay]. Call [restorePost] to cancel
-  /// the pending deletion and reinsert the post into the UI.
   void optimisticDelete(
     Post post, {
     Duration delay = const Duration(seconds: 3),

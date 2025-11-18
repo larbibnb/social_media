@@ -7,6 +7,7 @@ import 'package:social_media/features/post/presentation/components/post_card.dar
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
+import 'package:social_media/features/profile/presentation/cubit/profile_cache_cubit.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_state.dart';
 import 'package:social_media/features/profile/presentation/views/edit_profile_view.dart';
@@ -25,7 +26,7 @@ class _ProfileViewState extends State<ProfileView>
   late final AuthCubit authCubit;
   late final ProfileCubit profileCubit;
   late final PostCubit postCubit;
-  List<Post> _profilePosts = [];
+  late final ProfileCacheCubit cacheCubit;
 
   @override
   void initState() {
@@ -33,13 +34,20 @@ class _ProfileViewState extends State<ProfileView>
     authCubit = context.read<AuthCubit>();
     profileCubit = context.read<ProfileCubit>();
     postCubit = context.read<PostCubit>();
-    profileCubit.getProfileUser(widget.uid);
-    // Fetch profile posts without mutating the global PostCubit's state
-    postCubit.fetchPostsByUserId(widget.uid).then((posts) {
-      setState(() {
-        _profilePosts = posts;
-      });
+    cacheCubit = context.read<ProfileCacheCubit>();
+    profileCubit.getProfileUser(widget.uid).then((user) {
+      if (user != null) {
+        cacheCubit
+            .load(user.uid)
+            .then((user) {
+              postCubit.fetchPostsByUserId(user.uid);
+            })
+            .catchError((e) {
+              // ignore — PostCubit will remain in initial state; optionally show error
+            });
+      }
     });
+
     tabBarController = TabController(length: 2, vsync: this);
   }
 
@@ -142,63 +150,72 @@ class _ProfileViewState extends State<ProfileView>
                       ),
                       SizedBox(height: 20),
                       BlocBuilder<PostCubit, PostState>(
-                        builder: (context, postState) {
-                          final profilePosts = _profilePosts;
-                          return Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _StatCard(
-                                    profileUser: profileUser,
-                                    postsCount: profilePosts.length,
-                                    label: 'Following',
-                                  ),
-                                  _StatCard(
-                                    profileUser: profileUser,
-                                    postsCount: profilePosts.length,
-                                    label: 'Followers',
-                                  ),
-                                  _StatCard(
-                                    profileUser: profileUser,
-                                    postsCount: profilePosts.length,
-                                    label: 'Posts',
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 20),
-                              TabBar(
-                                controller: tabBarController,
-                                tabs: [
-                                  Tab(text: 'Posts'),
-                                  Tab(text: 'Collections'),
-                                ],
-                              ),
-                              SizedBox(height: 20),
-                              SizedBox(
-                                height: 800,
-                                child: TabBarView(
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  controller: tabBarController,
+                        builder: (context, state) {
+                          if (state is PostsLoaded) {
+                            final profilePosts = state.posts;
+                            return Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    ListView.builder(
-                                      shrinkWrap: true,
-                                      // Allow the list to scroll within the SingleChildScrollView
-                                      physics: const BouncingScrollPhysics(),
-                                      itemBuilder:
-                                          (context, index) => PostCard(
-                                            author: profileUser,
-                                            post: profilePosts[index],
-                                          ),
-                                      itemCount: profilePosts.length,
+                                    _StatCard(
+                                      profileUser: profileUser,
+                                      postsCount: profilePosts.length,
+                                      label: 'Following',
                                     ),
-                                    Center(child: Text('Collections')),
+                                    _StatCard(
+                                      profileUser: profileUser,
+                                      postsCount: profilePosts.length,
+                                      label: 'Followers',
+                                    ),
+                                    _StatCard(
+                                      profileUser: profileUser,
+                                      postsCount: profilePosts.length,
+                                      label: 'Posts',
+                                    ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          );
+                                SizedBox(height: 20),
+                                TabBar(
+                                  controller: tabBarController,
+                                  tabs: [
+                                    Tab(text: 'Posts'),
+                                    Tab(text: 'Collections'),
+                                  ],
+                                ),
+                                SizedBox(height: 20),
+                                SizedBox(
+                                  height: 800,
+                                  child: TabBarView(
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    controller: tabBarController,
+                                    children: [
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        // Allow the list to scroll within the SingleChildScrollView
+                                        physics: const BouncingScrollPhysics(),
+                                        itemBuilder: (context, index) {
+                                          final post = profilePosts[index];
+                                          return PostCard(
+                                            author: profileUser,
+                                            post: post,
+                                          );
+                                        },
+                                        itemCount: profilePosts.length,
+                                      ),
+                                      Center(child: Text('Collections')),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          } else if (state is PostError) {
+                            return Center(child: Text(state.message));
+                          } else {
+                            return Center(child: CircularProgressIndicator());
+                          }
                         },
                       ),
                     ],
