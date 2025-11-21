@@ -1,12 +1,10 @@
-import 'dart:developer';
-
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 
 class ProfileCreating extends StatefulWidget {
   final ValueChanged<String> onDisplayNameChanged;
   final ValueChanged<String> onUserNameChanged;
-  final ValueChanged<String> onSexChanged;
+  final ValueChanged<String> onGenderChanged;
   final ValueChanged<String> onBioChanged;
   final ValueChanged<String> onLocationChanged;
 
@@ -14,7 +12,7 @@ class ProfileCreating extends StatefulWidget {
     super.key,
     required this.onDisplayNameChanged,
     required this.onUserNameChanged,
-    required this.onSexChanged,
+    required this.onGenderChanged,
     required this.onBioChanged,
     required this.onLocationChanged,
   });
@@ -164,7 +162,7 @@ class _ProfileCreatingState extends State<ProfileCreating> {
                         ],
                         onChanged: (value) {
                           setState(() {
-                            widget.onSexChanged(value!);
+                            widget.onGenderChanged(value!);
                           });
                         },
                       ),

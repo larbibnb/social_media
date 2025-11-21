@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:country_picker/country_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:social_media/features/auth/domain/entities/app_user.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_state.dart';
@@ -17,7 +19,10 @@ class EditProfileView extends StatefulWidget {
 
 class _EditProfileViewState extends State<EditProfileView> {
   final nameController = TextEditingController();
+  final locationController = TextEditingController();
   final bioController = TextEditingController();
+  final interestsController = TextEditingController();
+  final genderValue = ValueNotifier<String>('');
   PlatformFile? pickedFile;
 
   Future<void> pickImage() async {
@@ -41,9 +46,11 @@ class _EditProfileViewState extends State<EditProfileView> {
 
   void updateProfile(ProfileUser profileUser) {
     final displayName = nameController.text.trim();
+    final location = locationController.text.trim();
     final bio = bioController.text.trim();
     final updatedprofileUser = profileUser.copyWith(
       displayName: displayName,
+      location: location,
       bio: bio,
     );
     context.read<ProfileCubit>().updateProfileUser(
@@ -56,6 +63,8 @@ class _EditProfileViewState extends State<EditProfileView> {
   void initState() {
     super.initState();
     nameController.text = widget.user.displayName ?? '';
+    locationController.text = widget.user.location ?? '';
+    genderValue.value = widget.user.gender?.name ?? Gender.male.name;
     bioController.text = widget.user.bio ?? '';
   }
 
@@ -112,39 +121,177 @@ class _EditProfileViewState extends State<EditProfileView> {
                         ),
                       ],
                     ),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: nameController,
-                          decoration: const InputDecoration(labelText: 'Name'),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: bioController,
-                          maxLines: 4,
-                          decoration: const InputDecoration(
-                            labelText: 'Bio',
-                            alignLabelWithHint: true,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              updateProfile(widget.user);
-                              Navigator.pop(context);
-                            },
-                            icon: const Icon(Icons.save),
-                            label: const Text('Save'),
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Edit Your Profile',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.headlineSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
+
+                          const SizedBox(height: 32),
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Display Name',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: TextField(
+                                    controller: nameController,
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText: 'e.g., John Doe',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Whats your sex?',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: DropdownButtonFormField<String>(
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText: 'Select your sex',
+                                    ),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        genderValue.value = value!;
+                                      });
+                                    },
+                                    value: genderValue.value,
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: 'male',
+                                        child: Text('Male'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'female',
+                                        child: Text('Female'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Where are you from?',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: TextField(
+                                    onTap: () {
+                                      showCountryPicker(
+                                        context: context,
+                                        showPhoneCode: true,
+                                        onSelect: (Country country) {
+                                          setState(() {
+                                            locationController.text =
+                                                '${country.flagEmoji} ${country.name}';
+                                          });
+                                        },
+                                      );
+                                    },
+                                    controller: locationController,
+                                    readOnly: true,
+                                    decoration: InputDecoration(
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      hintText:
+                                          locationController.text.isNotEmpty
+                                              ? locationController.text
+                                              : 'Select Country',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Bio',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: TextField(
+                                    controller: bioController,
+                                    maxLines: 4,
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText:
+                                          'Write a short bio about yourself',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

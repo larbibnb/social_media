@@ -11,6 +11,7 @@ class ProfileUser extends AppUser {
     required super.uid,
     required super.displayName,
     required super.userName,
+    required super.location,
     required super.gender,
     required super.email,
     required super.createdAt,
@@ -26,6 +27,7 @@ class ProfileUser extends AppUser {
     String? uid,
     String? displayName,
     String? userName,
+    String? location,
     Gender? gender,
     String? email,
     String? createdAt,
@@ -39,6 +41,7 @@ class ProfileUser extends AppUser {
       uid: uid ?? this.uid,
       displayName: displayName ?? this.displayName,
       userName: userName ?? this.userName,
+      location: location ?? this.location,
       gender: gender ?? this.gender,
       email: email ?? this.email,
       createdAt: createdAt ?? this.createdAt,
@@ -56,6 +59,7 @@ class ProfileUser extends AppUser {
       uid: json['uid'],
       displayName: json['displayName'],
       userName: json['userName'],
+      location: json['location'],
       gender:
           json['gender'] != null
               ? Gender.values.firstWhere(
@@ -81,6 +85,7 @@ class ProfileUser extends AppUser {
       'uid': uid,
       'displayName': displayName,
       'userName': userName,
+      'location': location,
       'gender': gender?.name,
       'email': email,
       'createdAt': createdAt,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:social_media/features/home/presentation/components/drawer_tiles.dart';
+import 'package:social_media/features/home/presentation/components/searchview.dart';
 import 'package:social_media/features/profile/presentation/views/profile_view.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -23,9 +24,21 @@ class CustomDrawer extends StatelessWidget {
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-              DrawerTiles(title: 'SEARCH', icon: Icons.search, onTap: () {}),
+              DrawerTiles(
+                title: 'SEARCH',
+                icon: Icons.search,
+                onTap: () {
+                  showSearchSheet(context);
+                },
+              ),
               SizedBox(height: 25),
-              DrawerTiles(title: 'HOME', icon: Icons.home, onTap: () {}),
+              DrawerTiles(
+                title: 'HOME',
+                icon: Icons.home,
+                onTap: () {
+                  Navigator.pop(context);
+                },
+              ),
               DrawerTiles(
                 title: 'PROFILE',
                 icon: Icons.person,

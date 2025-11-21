@@ -19,12 +19,6 @@ class _HomeViewState extends State<HomeView> {
       appBar: AppBar(
         title: Text('Feed'),
         actions: [
-          IconButton(
-            onPressed: () {
-              showSearchSheet(context);
-            },
-            icon: Icon(Icons.search),
-          ),
           // Right-aligned rounded popup menu with soft tiles
           PopupMenuButton<String>(
             icon: Icon(Icons.add),

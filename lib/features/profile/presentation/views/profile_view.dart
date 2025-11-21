@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:social_media/features/home/presentation/components/custom_drawer.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/presentation/components/post_card.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
@@ -71,6 +72,8 @@ class _ProfileViewState extends State<ProfileView>
           final isCurrentUser = profileUser.uid == currentUser!.uid;
           bool isFollowing = profileUser.followers.contains(currentUser.uid);
           return Scaffold(
+            drawer: CustomDrawer(),
+            appBar: AppBar(title: Text(profileUser.displayName!)),
             body: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -299,7 +302,7 @@ class _ProfileHeader extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  profileUser.displayName!,
+                  '${profileUser.displayName!} ${profileUser.location ?? ''}',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

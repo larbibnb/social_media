@@ -54,6 +54,7 @@ class _OnboardingState extends State<Onboarding> {
             _profileUser = state.profileUser;
             _displayName = state.profileUser.displayName ?? '';
             _userName = state.profileUser.userName ?? '';
+            _sex = state.profileUser.gender?.name ?? '';
             _bio = state.profileUser.bio ?? '';
             _interests = state.profileUser.interests;
             _location = state.profileUser.location ?? '';
@@ -84,7 +85,7 @@ class _OnboardingState extends State<Onboarding> {
                     onDisplayNameChanged:
                         (val) => setState(() => _displayName = val),
                     onUserNameChanged: (val) => setState(() => _userName = val),
-                    onSexChanged: (val) => setState(() => _sex = val),
+                    onGenderChanged: (val) => setState(() => _sex = val),
                     onBioChanged: (val) => setState(() => _bio = val),
                     onLocationChanged: (val) => setState(() => _location = val),
                   ),
