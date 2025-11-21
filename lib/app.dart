@@ -23,26 +23,6 @@ import 'package:social_media/features/storage/data/firebase_storage_repo.dart';
 import 'package:social_media/features/storage/domain/storage_repo.dart';
 import 'package:social_media/themes/light_mode.dart';
 
-/*
-app root level 
-____________________________________
-
-Repositories for the database
- -Firebase
-
-Cubits for the business logic
- -AuthCubit
- -StorageCubit
- -PostCubit
- -SearchCubit
- -ProfileCubit
- -SettingsCubit
-Chek AuthState
- -Authenticated ==> HomeScreen
- -UnAuthenticated ==> Authscreen
-
-*/
-
 class MyApp extends StatelessWidget {
   AuthRepo authRepo = FirebaseAuthRepo();
   ProfileRepo profileRepo = FirebaseProfileRepo(FirebaseFirestore.instance);
