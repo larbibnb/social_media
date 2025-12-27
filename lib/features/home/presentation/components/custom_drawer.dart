@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:social_media/features/auth/presentation/cubits/auth_states.dart';
 import 'package:social_media/features/home/presentation/components/drawer_tiles.dart';
 import 'package:social_media/features/home/presentation/components/searchview.dart';
 import 'package:social_media/features/home/presentation/views/home_view.dart';
@@ -24,6 +25,21 @@ class _CustomDrawerState extends State<CustomDrawer> {
     super.initState();
     authCubit = context.read<AuthCubit>();
     profileCubit = context.read<ProfileCubit>();
+    
+    // Load profile when drawer is initialized if needed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProfileIfNotLoaded();
+    });
+  }
+  
+  Future<void> _loadProfileIfNotLoaded() async {
+    if (authCubit.state is Authenticated) {
+      final userId = (authCubit.state as Authenticated).appUser.uid;
+      // Only load if not already loaded
+      if (profileCubit.state is! ProfileLoaded) {
+        await profileCubit.getProfileUser(userId);
+      }
+    }
   }
 
   @override
@@ -32,9 +48,35 @@ class _CustomDrawerState extends State<CustomDrawer> {
       bloc: profileCubit,
       builder: (context, state) {
         if (state is ProfileLoading || state is ProfileInitial) {
-          return CircularProgressIndicator();
+          return Drawer(
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
         } else if (state is ProfileError) {
-          return Text(state.error);
+          return Drawer(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(state.error),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      final authCubit = context.read<AuthCubit>();
+                      if (authCubit.state is Authenticated) {
+                        final userId = (authCubit.state as Authenticated).appUser.uid;
+                        profileCubit.getProfileUser(userId);
+                      }
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          );
         } else if (state is ProfileLoaded) {
           final profileUser = state.profileUser;
           return Drawer(
@@ -76,8 +118,8 @@ class _CustomDrawerState extends State<CustomDrawer> {
                                   color: Colors.grey.shade200,
                                   child: Center(
                                     child: Text(
-                                      profileUser.displayName!.characters.first
-                                          .toUpperCase(),
+                                      profileUser.displayName?.characters.first
+                                          .toUpperCase() ?? 'U',
                                       style: TextStyle(fontSize: 36),
                                     ),
                                   ),
@@ -137,7 +179,12 @@ class _CustomDrawerState extends State<CustomDrawer> {
             ),
           );
         } else {
-          return SizedBox();
+          // Default fallback for any other state
+          return Drawer(
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
         }
       },
     );

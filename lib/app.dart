@@ -16,6 +16,7 @@ import 'package:social_media/features/profile/data/firebase_profile_data.dart';
 import 'package:social_media/features/profile/domain/repo/profile_repo.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cache_cubit.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
+import 'package:social_media/features/profile/presentation/cubit/profile_state.dart';
 import 'package:social_media/features/search/data/search_repo_imp.dart';
 import 'package:social_media/features/search/domain/search_repo.dart';
 import 'package:social_media/features/search/presentation/cubit/search_cubit.dart';
@@ -38,11 +39,22 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => AuthCubit(authRepo)..chekAuth()),
-        BlocProvider(create: (context) => ProfileCubit(profileRepo)),
-        BlocProvider(create: (context) => PostCubit(postRepo, storageRepo)),
-        BlocProvider(create: (context) => SearchCubit(searchRepo)),
-        BlocProvider(create: (context) => ProfileCacheCubit(profileRepo)),
+        BlocProvider(
+          create: (context) => AuthCubit(authRepo)
+            ..chekAuth(),
+        ),
+        BlocProvider(
+          create: (context) => ProfileCubit(profileRepo),
+        ),
+        BlocProvider(
+          create: (context) => PostCubit(postRepo, storageRepo),
+        ),
+        BlocProvider(
+          create: (context) => SearchCubit(searchRepo),
+        ),
+        BlocProvider(
+          create: (context) => ProfileCacheCubit(profileRepo),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -51,6 +63,14 @@ class MyApp extends StatelessWidget {
           builder: (context, state) {
             print(state);
             if (state is Authenticated) {
+              // Initialize the ProfileCubit with current user data
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final profileCubit = context.read<ProfileCubit>();
+                if (profileCubit.state is! ProfileLoaded) {
+                  profileCubit.getProfileUser(state.appUser.uid);
+                }
+              });
+              
               // Check if the user has completed onboarding by verifying if their
               // profile info is filled (displayName and userName are not empty).
               // This way we don't need an extra flag in the database.

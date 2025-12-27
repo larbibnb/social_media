@@ -28,17 +28,23 @@ class _FeedViewState extends State<FeedView> {
     postCubit = context.read<PostCubit>();
     authCubit = context.read<AuthCubit>();
     cacheCubit = context.read<ProfileCacheCubit>();
-    cacheCubit
-        .load(authCubit.currentUser!.uid)
-        .then((user) {
-          _following = user.following;
-          if (_following.isNotEmpty) {
-            postCubit.fetchFeedPostsByUserIds(_following);
-          }
-        })
-        .catchError((e) {
-          // ignore — PostCubit will remain in initial state; optionally show error
-        });
+    _loadAndFetchFeed();
+  }
+
+  Future<void> _loadAndFetchFeed() async {
+    try {
+      final user = await cacheCubit.load(authCubit.currentUser!.uid);
+      _following = user.following;
+      if (_following.isNotEmpty) {
+        await postCubit.fetchFeedPostsByUserIds(_following);
+      } else {
+        // If user is not following anyone, emit empty posts to avoid loading state
+        postCubit.emit(PostsLoaded([]));
+      }
+    } catch (e) {
+      // Emit error state so the UI can show an appropriate message
+      postCubit.emit(PostError('Failed to load feed: ${e.toString()}'));
+    }
   }
 
   @override

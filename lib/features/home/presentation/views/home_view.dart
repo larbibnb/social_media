@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
+import 'package:social_media/features/auth/presentation/cubits/auth_states.dart';
 import 'package:social_media/features/home/presentation/components/custom_drawer.dart';
 import 'package:social_media/features/home/presentation/components/searchview.dart';
 import 'package:social_media/features/post/presentation/views/addpost.dart';
 import 'package:social_media/features/post/presentation/views/feedview.dart';
+import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -12,6 +16,20 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the ProfileCubit with the current user's profile
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authCubit = context.read<AuthCubit>();
+      final profileCubit = context.read<ProfileCubit>();
+      if (authCubit.state is Authenticated) {
+        final userId = (authCubit.state as Authenticated).appUser.uid;
+        profileCubit.getProfileUser(userId);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
