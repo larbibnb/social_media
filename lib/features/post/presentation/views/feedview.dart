@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
@@ -20,8 +22,6 @@ class _FeedViewState extends State<FeedView> {
   late final ProfileCacheCubit cacheCubit;
   List<String> _following = [];
 
-  // final List<Post> _feedPosts = [];
-
   @override
   void initState() {
     super.initState();
@@ -32,19 +32,10 @@ class _FeedViewState extends State<FeedView> {
   }
 
   Future<void> _loadAndFetchFeed() async {
-    try {
+    log('Fetching feed data for ${authCubit.currentUser!.uid}');
       final user = await cacheCubit.load(authCubit.currentUser!.uid);
       _following = user.following;
-      if (_following.isNotEmpty) {
-        await postCubit.fetchFeedPostsByUserIds(_following);
-      } else {
-        // If user is not following anyone, emit empty posts to avoid loading state
-        postCubit.emit(PostsLoaded([]));
-      }
-    } catch (e) {
-      // Emit error state so the UI can show an appropriate message
-      postCubit.emit(PostError('Failed to load feed: ${e.toString()}'));
-    }
+      await postCubit.fetchFeedPostsByUserIds(_following);
   }
 
   @override
@@ -52,8 +43,13 @@ class _FeedViewState extends State<FeedView> {
     return Scaffold(
       body: BlocBuilder<PostCubit, PostState>(
         builder: (context, state) {
-          if (state is PostsLoaded) {
+          if (state is ProfilePostsLoaded){
+              _loadAndFetchFeed();
+          }
+          if (state is FeedPostsLoaded) {
             final posts = state.posts;
+            final authorIds = posts.map((p) => p.ownerId).toSet().toList();
+            cacheCubit.loadBatch(authorIds);
             if (posts.isEmpty) {
               return RefreshIndicator(
                 onRefresh: () async {
@@ -104,18 +100,10 @@ class _PostCardWithAuthor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Read the cached author synchronously
-    final cacheCubit = context.read<ProfileCacheCubit>();
-    final author = cacheCubit.state[post.ownerId];
+    final cache = context.watch<ProfileCacheCubit>();
+    final author = cache.state[post.ownerId];
 
-    // If author is not cached yet, request load (prefetch should have cached this already)
     if (author == null) {
-      cacheCubit.load(post.ownerId).then((_) {
-        if (context.mounted) {
-          // Trigger parent rebuild
-          (context as Element).markNeedsBuild();
-        }
-      });
       return const _PostCardSkeleton();
     }
 

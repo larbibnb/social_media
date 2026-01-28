@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:social_media/features/post/domain/entity/comment.dart';
+import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/domain/repo/profile_repo.dart';
 import 'package:social_media/features/storage/data/firebase_storage_repo.dart';
@@ -8,6 +10,8 @@ class FirebaseProfileRepo implements ProfileRepo {
   final FirebaseFirestore firebaseFirestore;
   final storageRepo = FirebaseStorageRepo();
   FirebaseProfileRepo(this.firebaseFirestore);
+
+  final postsCollection = FirebaseFirestore.instance.collection('posts');
 
   @override
   Future<ProfileUser?> getProfileUser(String uid) async {
@@ -22,6 +26,36 @@ class FirebaseProfileRepo implements ProfileRepo {
       }
     } catch (e) {
       throw Exception('Get profile user failed: ${e.toString()}');
+    }
+  }
+  
+  @override
+  Future<List<Post>> fetchPostsByUserId(String userId) async {
+    try {
+      final postSnapShot =
+          await postsCollection
+              .orderBy('timestamp', descending: true)
+              .where('ownerId', isEqualTo: userId)
+              .get();
+      final userPostsDocs = postSnapShot.docs;
+
+      final postsList = <Post>[];
+      for (final doc in userPostsDocs) {
+        final commentsSnapshot =
+            await doc.reference
+                .collection('comments')
+                .orderBy('timestamp', descending: true)
+                .get();
+        final comments =
+            commentsSnapshot.docs.map((commentDoc) {
+              final data = commentDoc.data();
+              return Comment.fromJson(data);
+            }).toList();
+        postsList.add(Post.fromJson(doc.data(), comments: comments));
+      }
+      return postsList;
+    } on Exception catch (e) {
+      throw Exception('error fetching posts by user id $e');
     }
   }
 

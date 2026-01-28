@@ -109,7 +109,7 @@ class _AddpostState extends State<Addpost> {
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text(state.message)));
-          } else if (state is PostsLoaded) {
+          } else if (state is PostsCollectionState) {
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text('Post added successfully')));

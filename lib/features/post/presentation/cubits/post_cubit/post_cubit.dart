@@ -15,23 +15,15 @@ class PostCubit extends Cubit<PostState> {
   final Map<String, int> _deletedIndex = {};
   PostCubit(this._postRepo, this._storageRepo) : super(PostInitial());
 
-  Future<List<Post>> fetchPostsByUserId(String userId) async {
-    emit(PostLoading());
-    try {
-      final userPosts = await _postRepo.fetchPostsByUserId(userId);
-      emit(PostsLoaded(userPosts));
-      return userPosts;
-    } catch (e) {
-      emit(PostError(e.toString()));
-      return <Post>[];
-    }
-  }
 
   Future<List<Post>> fetchFeedPostsByUserIds(List<String> userIds) async {
-    emit(PostLoading());
+      emit(PostLoading());
+      if (userIds.isEmpty) {
+      emit(FeedPostsLoaded([]));
+    }
     try {
       final feedPosts = await _postRepo.fetchFeedPostsByUserIds(userIds);
-      emit(PostsLoaded(feedPosts));
+      emit(FeedPostsLoaded(feedPosts));
       return feedPosts;
     } catch (e) {
       emit(PostError(e.toString()));
@@ -63,7 +55,7 @@ class PostCubit extends Cubit<PostState> {
     Duration delay = const Duration(seconds: 3),
   }) {
     final currentState = state;
-    if (currentState is! PostsLoaded) return;
+    if (currentState is! PostsCollectionState) return;
 
     final index = currentState.posts.indexWhere((p) => p.id == post.id);
     if (index == -1) return;
@@ -73,7 +65,11 @@ class PostCubit extends Cubit<PostState> {
     _deletedIndex[post.id] = index;
 
     final updatedPosts = List<Post>.from(currentState.posts)..removeAt(index);
-    emit(PostsLoaded(updatedPosts));
+    if (currentState is FeedPostsLoaded) {
+      emit(FeedPostsLoaded(updatedPosts));
+    } else if (currentState is ProfilePostsLoaded) {
+    emit(ProfilePostsLoaded(updatedPosts));
+  }
 
     // Schedule the actual backend deletion after the delay
     final timer = Timer(delay, () async {
@@ -85,7 +81,11 @@ class PostCubit extends Cubit<PostState> {
         _pendingDeletions.remove(post.id);
       } catch (e) {
         // Revert to previous state and surface error
-        emit(PostsLoaded(currentState.posts));
+        if (currentState is FeedPostsLoaded) {
+          emit(FeedPostsLoaded(currentState.posts));
+        } else if (currentState is ProfilePostsLoaded) {
+          emit(ProfilePostsLoaded(currentState.posts));
+        }
         emit(PostError('Failed to delete post: ${e.toString()}'));
         _deletedBackups.remove(post.id);
         _deletedIndex.remove(post.id);
@@ -106,15 +106,23 @@ class PostCubit extends Cubit<PostState> {
     if (backup == null) return; // nothing to restore
 
     final currentState = state;
-    if (currentState is! PostsLoaded) {
-      emit(PostsLoaded([backup]));
+    if (currentState is! PostsCollectionState) {
+      if (currentState is FeedPostsLoaded) {
+      emit(FeedPostsLoaded([backup]));
+      } else if (currentState is ProfilePostsLoaded) {
+        emit(ProfilePostsLoaded([backup]));
+      }
       return;
     }
 
     final updated = List<Post>.from(currentState.posts);
     final insertIndex = index.clamp(0, updated.length);
     updated.insert(insertIndex, backup);
-    emit(PostsLoaded(updated));
+    if (currentState is FeedPostsLoaded) {
+      emit(FeedPostsLoaded(updated));
+    } else if (currentState is ProfilePostsLoaded) {
+      emit(ProfilePostsLoaded(updated));
+    }
   }
 
   Future<void> toggleLikePost(String postId, String userId) async {
@@ -132,7 +140,7 @@ class PostCubit extends Cubit<PostState> {
     String description,
   ) async {
     final currentState = state;
-    if (currentState is! PostsLoaded) return;
+    if (currentState is! PostsCollectionState) return;
 
     final newComment = Comment(
       id: '',
@@ -153,7 +161,11 @@ class PostCubit extends Cubit<PostState> {
           }
           return post;
         }).toList();
-    emit(PostsLoaded(updatedPosts));
+        if (currentState is FeedPostsLoaded) {
+          emit(FeedPostsLoaded(updatedPosts));
+        } else if (currentState is ProfilePostsLoaded) {
+          emit(ProfilePostsLoaded(updatedPosts));
+        }
 
     try {
       await _postRepo.commentPost(postId, ownerId, ownerName, description);
@@ -166,7 +178,7 @@ class PostCubit extends Cubit<PostState> {
 
   Future<void> deleteCommentPost(String postId, String commentId) async {
     final currentState = state;
-    if (currentState is! PostsLoaded) return;
+    if (currentState is! PostsCollectionState) return;
     final updatedPosts =
         currentState.posts.map((post) {
           if (post.id == postId) {
@@ -178,7 +190,11 @@ class PostCubit extends Cubit<PostState> {
           }
           return post;
         }).toList();
-    emit(PostsLoaded(updatedPosts));
+        if (currentState is FeedPostsLoaded) {
+          emit(FeedPostsLoaded(updatedPosts));
+        } else if (currentState is ProfilePostsLoaded) {
+          emit(ProfilePostsLoaded(updatedPosts));
+        }
     try {
       await _postRepo.deleteCommentPost(postId, commentId);
     } catch (e) {

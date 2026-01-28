@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/domain/repo/profile_repo.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_state.dart';
@@ -20,7 +21,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       emit(ProfileLoading());
       final profileUser = await profileRepo.getProfileUser(uid);
       if (profileUser != null) {
-        emit(ProfileLoaded(profileUser));
+        emit(ProfileLoaded(profileUser, []));
       } else {
         emit(ProfileError('Profile not found for uid: $uid'));
       }
@@ -28,6 +29,21 @@ class ProfileCubit extends Cubit<ProfileState> {
     } catch (e) {
       emit(ProfileError('Cubit Get profile user failed: ${e.toString()}'));
       return null;
+    }
+  }
+    Future<List<Post>> fetchPostsByUserId(String userId) async {
+    emit(ProfileLoading());
+    final profileUser = await getProfileUser(userId);
+    if (profileUser == null) {
+      return <Post>[];
+    }
+    try {
+      final userPosts = await profileRepo.fetchPostsByUserId(userId);
+      emit(ProfileLoaded(profileUser, userPosts));
+      return userPosts;
+    } catch (e) {
+      emit(ProfileError(e.toString()));
+      return <Post>[];
     }
   }
 
@@ -59,7 +75,7 @@ class ProfileCubit extends Cubit<ProfileState> {
           newFollowers.add(myUid);
         }
         final updatedUser = originalUser.copyWith(followers: newFollowers);
-        emit(ProfileLoaded(updatedUser));
+        emit(ProfileLoaded(updatedUser,[]));
 
         // Perform the actual repository call
         await profileRepo.toggleFollowUser(myUid, uid);

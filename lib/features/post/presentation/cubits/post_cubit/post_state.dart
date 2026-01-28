@@ -1,32 +1,28 @@
 // lib/features/post/presentation/cubit/post_state.dart
-import 'package:equatable/equatable.dart';
 import 'package:social_media/features/post/domain/entity/post.dart';
 
-abstract class PostState extends Equatable {
-  const PostState();
+sealed class PostState {}
 
-  @override
-  List<Object> get props => [];
+abstract class PostsCollectionState extends PostState {
+  List<Post> get posts;
 }
-
 class PostInitial extends PostState {}
 
 class PostLoading extends PostState {}
 
-class PostsLoaded extends PostState {
-  final List<Post> posts;
-
-  const PostsLoaded(this.posts);
-
+class FeedPostsLoaded extends PostsCollectionState {
   @override
-  List<Object> get props => [posts];
+  final List<Post> posts;
+  FeedPostsLoaded(this.posts);
+}
+class ProfilePostsLoaded extends PostsCollectionState {
+  @override
+  final List<Post> posts;
+  ProfilePostsLoaded(this.posts);
 }
 
 class PostError extends PostState {
   final String message;
 
-  const PostError(this.message);
-
-  @override
-  List<Object> get props => [message];
+   PostError(this.message);
 }

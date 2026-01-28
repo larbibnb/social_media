@@ -1,12 +1,11 @@
+import 'dart:developer';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:social_media/features/auth/presentation/cubits/auth_cubit.dart';
 import 'package:social_media/features/home/presentation/components/custom_drawer.dart';
-import 'package:social_media/features/post/domain/entity/post.dart';
 import 'package:social_media/features/post/presentation/components/post_card.dart';
 import 'package:social_media/features/post/presentation/cubits/post_cubit/post_cubit.dart';
-import 'package:social_media/features/post/presentation/cubits/post_cubit/post_state.dart';
 import 'package:social_media/features/profile/domain/entities/profile_user.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cache_cubit.dart';
 import 'package:social_media/features/profile/presentation/cubit/profile_cubite.dart';
@@ -36,20 +35,14 @@ class _ProfileViewState extends State<ProfileView>
     profileCubit = context.read<ProfileCubit>();
     postCubit = context.read<PostCubit>();
     cacheCubit = context.read<ProfileCacheCubit>();
-    profileCubit.getProfileUser(widget.uid).then((user) {
-      if (user != null) {
-        cacheCubit
-            .load(user.uid)
-            .then((user) {
-              postCubit.fetchPostsByUserId(user.uid);
-            })
-            .catchError((e) {
-              // ignore — PostCubit will remain in initial state; optionally show error
-            });
-      }
-    });
-
+    fetchProfileData();
     tabBarController = TabController(length: 2, vsync: this);
+  }
+  Future<void> fetchProfileData() async {
+    log('Fetching profile data for ${widget.uid}');
+    await profileCubit.getProfileUser(widget.uid);
+    await cacheCubit.load(widget.uid);
+    profileCubit.fetchPostsByUserId(widget.uid);
   }
 
   @override
@@ -62,6 +55,7 @@ class _ProfileViewState extends State<ProfileView>
   Widget build(BuildContext context) {
     return BlocBuilder<ProfileCubit, ProfileState>(
       builder: (context, state) {
+        log('ProfileView state: $state');
         if (state is ProfileLoading || state is ProfileInitial) {
           return Scaffold(body: Center(child: CircularProgressIndicator()));
         } else if (state is ProfileError) {
@@ -71,6 +65,7 @@ class _ProfileViewState extends State<ProfileView>
           final profileUser = state.profileUser;
           final isCurrentUser = profileUser.uid == currentUser!.uid;
           bool isFollowing = profileUser.followers.contains(currentUser.uid);
+          final profilePosts = state.posts;
           return Scaffold(
             drawer: CustomDrawer(),
             appBar: AppBar(title: Text(profileUser.displayName!)),
@@ -152,11 +147,7 @@ class _ProfileViewState extends State<ProfileView>
                         ],
                       ),
                       SizedBox(height: 20),
-                      BlocBuilder<PostCubit, PostState>(
-                        builder: (context, state) {
-                          if (state is PostsLoaded) {
-                            final profilePosts = state.posts;
-                            return Column(
+                       Column(
                               children: [
                                 Row(
                                   mainAxisAlignment:
@@ -213,13 +204,7 @@ class _ProfileViewState extends State<ProfileView>
                                   ),
                                 ),
                               ],
-                            );
-                          } else if (state is PostError) {
-                            return Center(child: Text(state.message));
-                          } else {
-                            return Center(child: CircularProgressIndicator());
-                          }
-                        },
+                            
                       ),
                     ],
                   ),
